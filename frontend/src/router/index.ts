@@ -252,7 +252,8 @@ const router = createRouter({
 		{
 			path: '/tasks/by/upcoming',
 			name: 'tasks.range',
-			component: UpcomingTasks,
+			alias: '/upcoming',
+			component: () => import('@/views/tasks/UpcomingView.vue'),
 			props: route => ({
 				dateFrom: parseDateOrString(route.query.from as string, new Date()),
 				dateTo: parseDateOrString(route.query.to as string, getNextWeekDate()),
