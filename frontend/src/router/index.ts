@@ -238,6 +238,14 @@ const router = createRouter({
 			props: route => ({ taskId: Number(route.params.id as string) }),
 		},
 		{
+			path: '/inbox',
+			name: 'inbox',
+			component: () => import('@/views/tasks/InboxView.vue'),
+			meta: {
+				title: 'project.inboxTitle',
+			},
+		},
+		{
 			path: '/tasks/by/upcoming',
 			name: 'tasks.range',
 			component: UpcomingTasks,

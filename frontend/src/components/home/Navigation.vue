@@ -21,6 +21,16 @@
 			<menu class="menu-list other-menu-items">
 				<li>
 					<RouterLink
+						:to="{ name: 'inbox'}"
+					>
+						<span class="menu-item-icon icon">
+							<Icon icon="archive" />
+						</span>
+						{{ $t('project.inboxTitle') }}
+					</RouterLink>
+				</li>
+				<li>
+					<RouterLink
 						v-shortcut="SHORTCUTS.navigation.overview"
 						:to="{ name: 'home'}"
 					>
