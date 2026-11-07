@@ -1,133 +1,239 @@
 <template>
-	<template v-if="isInvite && inviteState.status !== 'ready'">
-		<Message v-if="inviteState.status === 'loading'">
-			{{ $t('misc.loading') }}
-		</Message>
-		<template v-else>
-			<Message
-				variant="danger"
-				class="mbe-4"
-			>
-				{{ $t(inviteState.status === 'invalid' ? 'user.auth.inviteInvalid' : 'user.auth.inviteLoadFailed') }}
-			</Message>
-			<RouterLink
-				:to="{name: 'user.login'}"
-				class="inline-link"
-			>
-				{{ $t('user.auth.login') }}
-			</RouterLink>
-		</template>
-	</template>
-	<div v-else-if="isInvite || configStore.auth.local.registration_enabled">
-		<Message
-			v-if="isInvite && inviteState.status === 'ready' && inviteState.link.teams?.length"
-			class="mbe-4"
-		>
-			{{ $t('user.auth.inviteTeams', {teams: inviteState.link.teams.map(team => team.name).join(', ')}) }}
-		</Message>
-		<Message
-			v-if="errorMessage !== ''"
-			variant="danger"
-			class="mbe-4"
-		>
-			{{ errorMessage }}
-		</Message>
-		<Message
-			v-if="confirmEmailMessage !== ''"
-			variant="success"
-			class="mbe-4"
-		>
-			{{ confirmEmailMessage }}
-		</Message>
-		<form
-			id="registerform"
-			@submit.prevent="submit"
-		>
-			<FormField
-				id="username"
-				v-model="credentials.username"
-				v-focus
-				:label="$t('user.auth.username')"
-				name="username"
-				:placeholder="$t('user.auth.usernamePlaceholder')"
-				required
-				type="text"
-				autocomplete="username"
-				:error="usernameError"
-				@keyup.enter="submit"
-				@focusout="validateUsername(); validateUsernameAfterFirst = true"
-				@keyup="handleUsernameKeyup"
-			/>
-			<FormField
-				id="email"
-				v-model="credentials.email"
-				:label="$t('user.auth.email')"
-				name="email"
-				:placeholder="$t('user.auth.emailPlaceholder')"
-				required
-				type="email"
-				:error="emailError"
-				autocomplete="email"
-				@keyup.enter="submit"
-				@focusout="validateEmail(); validateEmailAfterFirst = true"
-				@keyup="handleEmailKeyup"
-			/>
-			<div class="field">
-				<label
-					class="label"
-					for="password"
-				>{{ $t('user.auth.password') }}</label>
-				<Password
-					v-model="credentials.password"
-					:validate-initially="validatePasswordInitially"
-					autocomplete="new-password"
-					@submit="submit"
-				/>
-				<p
-					v-if="passwordError"
-					class="help is-danger"
+	<div class="register-page-wrapper">
+		<div class="register-card">
+			<!-- Header -->
+			<div class="card-header">
+				<div
+					class="logo-badge"
+					role="img"
+					aria-label="Vikunja Logo"
 				>
-					{{ passwordError }}
+					V
+				</div>
+				<h1 class="card-title">
+					{{ $t('user.auth.createAccount') || 'Crie sua conta no Vikunja' }}
+				</h1>
+				<p class="card-subtitle">
+					Organize projetos e tarefas com alta produtividade e clareza visual.
 				</p>
 			</div>
 
-			<XButton
-				id="register-submit"
-				:loading="isLoading"
-				class="mie-2"
-				:disabled="!everythingValid"
-				@click="submit"
-			>
-				{{ $t('user.auth.createAccount') }}
-			</XButton>
-
-			<Message
-				v-if="configStore.demo_mode_enabled"
-				variant="warning"
-				class="mbs-4"
-			>
-				{{ $t('demo.title') }}
-				{{ $t('demo.accountWillBeDeleted') }}<br>
-				<strong class="is-uppercase">{{ $t('demo.everythingWillBeDeleted') }}</strong>
-			</Message>
-
-			<p class="mbs-2">
-				{{ $t('user.auth.alreadyHaveAnAccount') }}
-				<RouterLink
-					:to="{ name: 'user.login' }"
-					class="inline-link"
+			<!-- Invite state: loading or invalid -->
+			<template v-if="isInvite && inviteState.status !== 'ready'">
+				<div
+					v-if="inviteState.status === 'loading'"
+					class="alert alert-info"
 				>
-					{{ $t('user.auth.login') }}
-				</RouterLink>
-			</p>
-		</form>
+					{{ $t('misc.loading') }}
+				</div>
+				<template v-else>
+					<div
+						class="alert alert-danger"
+						role="alert"
+					>
+						{{ $t(inviteState.status === 'invalid' ? 'user.auth.inviteInvalid' : 'user.auth.inviteLoadFailed') }}
+					</div>
+					<div class="card-footer">
+						<RouterLink
+							:to="{name: 'user.login'}"
+							class="login-link"
+						>
+							{{ $t('user.auth.login') }}
+						</RouterLink>
+					</div>
+				</template>
+			</template>
+
+			<!-- Registration form -->
+			<div v-else-if="isInvite || configStore.auth.local.registration_enabled">
+				<div
+					v-if="isInvite && inviteState.status === 'ready' && inviteState.link.teams?.length"
+					class="alert alert-info"
+				>
+					{{ $t('user.auth.inviteTeams', {teams: inviteState.link.teams.map(team => team.name).join(', ')}) }}
+				</div>
+				<div
+					v-if="errorMessage !== ''"
+					class="alert alert-danger"
+					role="alert"
+				>
+					{{ errorMessage }}
+				</div>
+				<div
+					v-if="confirmEmailMessage !== ''"
+					class="alert alert-success"
+					role="status"
+				>
+					{{ confirmEmailMessage }}
+				</div>
+
+				<form
+					id="register-form"
+					novalidate
+					@submit.prevent="submit"
+				>
+					<!-- Username Field -->
+					<div class="form-group">
+						<label
+							class="form-label"
+							for="reg-username"
+						>
+							{{ $t('user.auth.username') || 'Nome de Usuário' }}
+						</label>
+						<input
+							id="reg-username"
+							ref="usernameRef"
+							v-model="credentials.username"
+							v-focus
+							type="text"
+							name="username"
+							autocomplete="username"
+							placeholder="seunome"
+							class="form-input"
+							:class="{'is-invalid': hasAttemptedSubmit && usernameError}"
+							:aria-invalid="hasAttemptedSubmit && usernameError ? 'true' : undefined"
+							:aria-describedby="hasAttemptedSubmit && usernameError ? 'reg-username-error' : undefined"
+							required
+							@input="handleUsernameInput"
+							@focusout="validateUsername(); validateUsernameAfterFirst = true"
+							@keyup="handleUsernameKeyup"
+						>
+						<span
+							v-if="hasAttemptedSubmit && usernameError"
+							id="reg-username-error"
+							class="field-error"
+							role="alert"
+						>
+							{{ usernameError }}
+						</span>
+					</div>
+
+					<!-- Email Field -->
+					<div class="form-group">
+						<label
+							class="form-label"
+							for="reg-email"
+						>
+							{{ $t('user.auth.email') || 'E-mail Corporativo ou Pessoal' }}
+						</label>
+						<input
+							id="reg-email"
+							ref="emailRef"
+							v-model="credentials.email"
+							type="email"
+							name="email"
+							autocomplete="email"
+							placeholder="nome@empresa.com"
+							class="form-input"
+							:class="{'is-invalid': hasAttemptedSubmit && emailError}"
+							:aria-invalid="hasAttemptedSubmit && emailError ? 'true' : undefined"
+							:aria-describedby="hasAttemptedSubmit && emailError ? 'reg-email-error' : undefined"
+							required
+							@input="handleEmailInput"
+							@focusout="validateEmail(); validateEmailAfterFirst = true"
+							@keyup="handleEmailKeyup"
+						>
+						<span
+							v-if="hasAttemptedSubmit && emailError"
+							id="reg-email-error"
+							class="field-error"
+							role="alert"
+						>
+							{{ emailError }}
+						</span>
+					</div>
+
+					<!-- Password Field -->
+					<div class="form-group">
+						<label
+							class="form-label"
+							for="reg-password"
+						>
+							{{ $t('user.auth.password') || 'Senha' }}
+						</label>
+						<div class="password-input-wrapper">
+							<input
+								id="reg-password"
+								ref="passwordRef"
+								v-model="credentials.password"
+								:type="passwordVisible ? 'text' : 'password'"
+								name="password"
+								autocomplete="new-password"
+								placeholder="Mínimo 8 caracteres"
+								class="form-input password-input"
+								:class="{'is-invalid': hasAttemptedSubmit && passwordError}"
+								:aria-invalid="hasAttemptedSubmit && passwordError ? 'true' : undefined"
+								:aria-describedby="hasAttemptedSubmit && passwordError ? 'reg-password-error' : undefined"
+								required
+								@input="handlePasswordInput"
+								@focusout="validatePasswordInitially = true"
+							>
+							<button
+								type="button"
+								class="password-toggle-btn"
+								:aria-label="passwordVisible ? ($t('user.auth.hidePassword') || 'Ocultar senha') : ($t('user.auth.showPassword') || 'Mostrar senha')"
+								@click="passwordVisible = !passwordVisible"
+							>
+								<Icon :icon="passwordVisible ? 'eye-slash' : 'eye'" />
+							</button>
+						</div>
+						<span
+							v-if="hasAttemptedSubmit && passwordError"
+							id="reg-password-error"
+							class="field-error"
+							role="alert"
+						>
+							{{ passwordError }}
+						</span>
+					</div>
+
+					<!-- Submit Button -->
+					<button
+						id="register-submit"
+						type="submit"
+						class="btn-primary"
+						:disabled="isLoading"
+					>
+						<span
+							v-if="isLoading"
+							class="btn-spinner"
+							aria-hidden="true"
+						/>
+						<span v-else>{{ $t('user.auth.createAccount') || 'Criar Conta' }}</span>
+					</button>
+
+					<!-- Demo Mode Notice -->
+					<div
+						v-if="configStore.demo_mode_enabled"
+						class="alert alert-warning mbs-4"
+					>
+						<strong>{{ $t('demo.title') }}:</strong>
+						{{ $t('demo.accountWillBeDeleted') }}<br>
+						<span class="is-uppercase">{{ $t('demo.everythingWillBeDeleted') }}</span>
+					</div>
+				</form>
+
+				<!-- Footer -->
+				<div class="card-footer">
+					<span>{{ $t('user.auth.alreadyHaveAnAccount') || 'Já tem uma conta?' }}</span>
+					<RouterLink
+						:to="{ name: 'user.login' }"
+						class="login-link"
+					>
+						{{ $t('user.auth.login') || 'Fazer login' }}
+					</RouterLink>
+				</div>
+			</div>
+
+			<!-- Registration Disabled Message -->
+			<div
+				v-else
+				class="alert alert-warning"
+			>
+				{{ $t('user.auth.registrationDisabled') }}
+			</div>
+		</div>
 	</div>
-	<Message
-		v-else
-		variant="warning"
-	>
-		{{ $t('user.auth.registrationDisabled') }}
-	</Message>
 </template>
 
 <script setup lang="ts">
@@ -138,10 +244,8 @@ import {useI18n} from 'vue-i18n'
 import router from '@/router'
 import type {PublicInviteLink} from '@/client/generated'
 import {hasInviteLink, checkInviteLink, onInviteLinkChange} from '@/client/inviteLink'
-import Message from '@/components/misc/Message.vue'
+import Icon from '@/components/misc/Icon'
 import {isEmail} from '@/helpers/isEmail'
-import Password from '@/components/input/Password.vue'
-import FormField from '@/components/input/FormField.vue'
 import {parseValidationErrors, type ValidationError} from '@/helpers/parseValidationErrors'
 
 import {useRedirectToLastVisited} from '@/composables/useRedirectToLastVisited'
@@ -153,6 +257,7 @@ const isInvite = ref(hasInviteLink())
 type InviteState = {status: 'loading' | 'invalid' | 'error'} | {status: 'ready', link: PublicInviteLink}
 const inviteState = ref<InviteState>({status: 'loading'})
 let inviteCheck = 0
+
 async function loadInvite() {
 	isInvite.value = hasInviteLink()
 	if (!isInvite.value) return
@@ -167,6 +272,7 @@ async function loadInvite() {
 		inviteState.value = {status: e instanceof Object && 'status' in e && e.status === 404 ? 'invalid' : 'error'}
 	}
 }
+
 onBeforeMount(loadInvite)
 const unsubscribeInvite = onInviteLinkChange(loadInvite)
 onUnmounted(() => {
@@ -179,8 +285,6 @@ const authStore = useAuthStore()
 const configStore = useConfigStore()
 const {redirectIfSaved} = useRedirectToLastVisited()
 
-// FIXME: use the `beforeEnter` hook of vue-router
-// Check if the user is already logged in, if so, redirect them to the homepage
 onBeforeMount(() => {
 	if (authStore.authenticated) {
 		router.push({name: 'home'})
@@ -198,10 +302,15 @@ const errorMessage = ref('')
 const confirmEmailMessage = ref('')
 const validatePasswordInitially = ref(false)
 const serverValidationErrors = ref<Partial<Record<string, string>>>({})
+const passwordVisible = ref(false)
+const hasAttemptedSubmit = ref(false)
+
+const usernameRef = ref<HTMLInputElement | null>(null)
+const emailRef = ref<HTMLInputElement | null>(null)
+const passwordRef = ref<HTMLInputElement | null>(null)
 
 const DEBOUNCE_TIME = 100
 
-// debouncing to prevent error messages when clicking on the log in button
 const emailValid = ref(true)
 const validateEmailAfterFirst = ref(false)
 const validateEmail = useDebounceFn(() => {
@@ -212,17 +321,17 @@ const usernameValid = ref<true | string>(true)
 const validateUsernameAfterFirst = ref(false)
 const validateUsername = useDebounceFn(() => {
 	if (credentials.username === '') {
-		usernameValid.value = t('user.auth.usernameRequired')
+		usernameValid.value = t('user.auth.usernameRequired') || 'O nome de usuário é obrigatório'
 		return
 	}
 
 	if (credentials.username.indexOf(' ') !== -1) {
-		usernameValid.value = t('user.auth.usernameMustNotContainSpace')
+		usernameValid.value = t('user.auth.usernameMustNotContainSpace') || 'O nome de usuário não pode conter espaços'
 		return
 	}
 
 	if (credentials.username.indexOf('://') !== -1 || credentials.username.indexOf('.') !== -1) {
-		usernameValid.value = t('user.auth.usernameMustNotLookLikeUrl')
+		usernameValid.value = t('user.auth.usernameMustNotLookLikeUrl') || 'O nome de usuário não pode conter URLs'
 		return
 	}
 
@@ -230,35 +339,43 @@ const validateUsername = useDebounceFn(() => {
 }, DEBOUNCE_TIME)
 
 const everythingValid = computed(() => {
-	return credentials.username !== '' &&
-		credentials.email !== '' &&
+	return credentials.username.trim() !== '' &&
+		credentials.email.trim() !== '' &&
 		validatePassword(credentials.password) === true &&
 		emailValid.value &&
 		usernameValid.value === true
 })
 
 const usernameError = computed(() => {
-	// Client-side validation takes priority
 	if (usernameValid.value !== true) {
 		return usernameValid.value
 	}
-	// Show server-side error if present
 	return serverValidationErrors.value.username || null
 })
 
 const emailError = computed(() => {
-	// Client-side validation takes priority
 	if (!emailValid.value) {
-		return t('user.auth.emailInvalid')
+		return t('user.auth.emailInvalid') || 'E-mail inválido'
 	}
-	// Show server-side error if present
 	return serverValidationErrors.value.email || null
 })
 
 const passwordError = computed(() => {
-	// Show server-side error if present
+	if (validatePasswordInitially.value) {
+		const res = validatePassword(credentials.password)
+		if (res !== true) {
+			return t(res) || 'A senha deve ter no mínimo 8 caracteres'
+		}
+	}
 	return serverValidationErrors.value.password || null
 })
+
+function handleUsernameInput() {
+	delete serverValidationErrors.value.username
+	if (validateUsernameAfterFirst.value) {
+		validateUsername()
+	}
+}
 
 function handleUsernameKeyup() {
 	if (validateUsernameAfterFirst.value) {
@@ -267,11 +384,22 @@ function handleUsernameKeyup() {
 	delete serverValidationErrors.value.username
 }
 
+function handleEmailInput() {
+	delete serverValidationErrors.value.email
+	if (validateEmailAfterFirst.value) {
+		validateEmail()
+	}
+}
+
 function handleEmailKeyup() {
 	if (validateEmailAfterFirst.value) {
 		validateEmail()
 	}
 	delete serverValidationErrors.value.email
+}
+
+function handlePasswordInput() {
+	delete serverValidationErrors.value.password
 }
 
 function isApiValidationError(error: unknown): error is ValidationError {
@@ -284,6 +412,10 @@ async function submit() {
 	errorMessage.value = ''
 	serverValidationErrors.value = {}
 	validatePasswordInitially.value = true
+	hasAttemptedSubmit.value = true
+
+	validateUsername()
+	validateEmail()
 
 	if (!everythingValid.value || (isInvite.value && inviteState.value.status !== 'ready')) {
 		return
@@ -301,36 +433,319 @@ async function submit() {
 			inviteState.value = {status: 'invalid'}
 			return
 		}
-		// 1012 = email not confirmed: registration itself succeeded
 		if (e instanceof Object && 'code' in e && e.code === 1012) {
-			confirmEmailMessage.value = t('user.auth.registrationConfirmEmail')
+			confirmEmailMessage.value = t('user.auth.registrationConfirmEmail') || 'E-mail de confirmação enviado'
 			return
 		}
 
-		// Parse field-specific validation errors
 		if (isApiValidationError(e)) {
 			const fieldErrors = parseValidationErrors(e)
-
 			if (Object.keys(fieldErrors).length > 0) {
-				// Apply field-level errors (computed properties will display them)
 				serverValidationErrors.value = fieldErrors
 			} else {
-				// Fallback to general error message if no field errors
-				errorMessage.value = t('user.auth.registrationFailed')
+				errorMessage.value = t('user.auth.registrationFailed') || 'Falha no cadastro'
 			}
 		} else if (e instanceof Object && 'message' in e && typeof e.message === 'string') {
-			// Non-validation backend errors (e.g. duplicate username) - show their message
 			errorMessage.value = e.message
 		} else {
-			errorMessage.value = t('user.auth.registrationFailed')
+			errorMessage.value = t('user.auth.registrationFailed') || 'Falha no cadastro'
 		}
 	}
 }
 </script>
 
 <style lang="scss" scoped>
-// Underline links sitting inside body text so they're not distinguished by color alone
-.inline-link {
-	text-decoration: underline;
+.register-page-wrapper {
+	/* Design Tokens */
+	--font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	--bg-app: #0d0e12;
+	--bg-card: #181b22;
+	--bg-input: #1f232d;
+	--bg-hover: #262a36;
+	--text-primary: #f0f2f5;
+	--text-secondary: #9aa1b2;
+	--text-tertiary: #656c80;
+	--border-color: #232836;
+	--border-subtle: #1c202c;
+	--border-focus: #5e6ad2;
+	--accent-base: #5e6ad2;
+	--accent-hover: #4b56b8;
+	--accent-gradient: linear-gradient(135deg, #5e6ad2 0%, #8b5cf6 100%);
+	--shadow-card: 0 12px 32px rgba(0, 0, 0, 0.4);
+
+	font-family: var(--font-family);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 100vh;
+	width: 100%;
+	padding: 24px;
+	box-sizing: border-box;
+	background: radial-gradient(circle at 50% 20%, rgba(94, 106, 210, 0.15), transparent 70%), var(--bg-app);
+}
+
+:global(html.light) .register-page-wrapper {
+	--bg-app: #f9f9f9;
+	--bg-card: #ffffff;
+	--bg-input: #f1f3f7;
+	--bg-hover: #f4f4f5;
+	--text-primary: #111111;
+	--text-secondary: #6b6b6b;
+	--text-tertiary: #9ca3af;
+	--border-color: #e5e5e5;
+	--border-subtle: #f0f0f0;
+	--border-focus: #5e6ad2;
+	--shadow-card: 0 8px 24px rgba(0, 0, 0, 0.08);
+	background: radial-gradient(circle at 50% 20%, rgba(94, 106, 210, 0.08), transparent 70%), var(--bg-app);
+}
+
+@media (prefers-color-scheme: light) {
+	:global(html:not(.dark)) .register-page-wrapper {
+		--bg-app: #f9f9f9;
+		--bg-card: #ffffff;
+		--bg-input: #f1f3f7;
+		--bg-hover: #f4f4f5;
+		--text-primary: #111111;
+		--text-secondary: #6b6b6b;
+		--text-tertiary: #9ca3af;
+		--border-color: #e5e5e5;
+		--border-subtle: #f0f0f0;
+		--border-focus: #5e6ad2;
+		--shadow-card: 0 8px 24px rgba(0, 0, 0, 0.08);
+		background: radial-gradient(circle at 50% 20%, rgba(94, 106, 210, 0.08), transparent 70%), var(--bg-app);
+	}
+}
+
+.register-card {
+	width: 100%;
+	max-width: 440px;
+	background: var(--bg-card);
+	border: 1px solid var(--border-color);
+	border-radius: 12px;
+	padding: 40px;
+	box-shadow: var(--shadow-card);
+	box-sizing: border-box;
+
+	@media (max-width: 480px) {
+		padding: 24px;
+		border-radius: 8px;
+	}
+}
+
+.card-header {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	margin-bottom: 32px;
+}
+
+.logo-badge {
+	width: 48px;
+	height: 48px;
+	background: var(--accent-gradient);
+	border-radius: 10px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 22px;
+	color: #ffffff;
+	margin-bottom: 16px;
+	box-shadow: 0 4px 16px rgba(94, 106, 210, 0.4);
+	user-select: none;
+}
+
+.card-title {
+	font-size: 22px;
+	font-weight: 700;
+	letter-spacing: -0.5px;
+	color: var(--text-primary);
+	margin: 0 0 8px 0;
+}
+
+.card-subtitle {
+	font-size: 13px;
+	font-weight: 400;
+	color: var(--text-secondary);
+	line-height: 1.5;
+	margin: 0;
+}
+
+.alert {
+	padding: 10px 14px;
+	font-size: 13px;
+	border-radius: 6px;
+	margin-bottom: 20px;
+	line-height: 1.4;
+
+	&.alert-danger {
+		background-color: rgba(239, 68, 68, 0.12);
+		border: 1px solid rgba(239, 68, 68, 0.3);
+		color: #ef4444;
+	}
+
+	&.alert-success {
+		background-color: rgba(34, 197, 94, 0.12);
+		border: 1px solid rgba(34, 197, 94, 0.3);
+		color: #22c55e;
+	}
+
+	&.alert-info {
+		background-color: rgba(94, 106, 210, 0.12);
+		border: 1px solid rgba(94, 106, 210, 0.3);
+		color: var(--accent-base);
+	}
+
+	&.alert-warning {
+		background-color: rgba(234, 179, 8, 0.12);
+		border: 1px solid rgba(234, 179, 8, 0.3);
+		color: #eab308;
+	}
+}
+
+.form-group {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 20px;
+}
+
+.form-label {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-secondary);
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+}
+
+.form-input {
+	height: 42px;
+	background: var(--bg-input);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	padding: 10px 14px;
+	color: var(--text-primary);
+	font-family: inherit;
+	font-size: 14px;
+	outline: none;
+	box-sizing: border-box;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+	&::placeholder {
+		color: var(--text-tertiary);
+	}
+
+	&:focus {
+		border-color: var(--border-focus);
+		box-shadow: 0 0 0 2px rgba(94, 106, 210, 0.2);
+	}
+
+	&.is-invalid {
+		border-color: #ef4444;
+
+		&:focus {
+			box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+		}
+	}
+}
+
+.password-input-wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+
+	.password-input {
+		width: 100%;
+		padding-right: 40px;
+	}
+}
+
+.password-toggle-btn {
+	position: absolute;
+	right: 12px;
+	background: none;
+	border: none;
+	padding: 0;
+	color: var(--text-tertiary);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	&:hover {
+		color: var(--text-primary);
+	}
+}
+
+.field-error {
+	font-size: 12px;
+	color: #ef4444;
+	margin-top: 4px;
+	display: block;
+}
+
+.btn-primary {
+	width: 100%;
+	height: 44px;
+	margin-top: 12px;
+	background: var(--accent-base);
+	color: #ffffff;
+	font-weight: 600;
+	font-size: 14px;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	font-family: inherit;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+
+	&:hover:not(:disabled) {
+		background: var(--accent-hover);
+		transform: translateY(-1px);
+		box-shadow: 0 4px 14px rgba(94, 106, 210, 0.4);
+	}
+
+	&:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+	}
+}
+
+.btn-spinner {
+	width: 18px;
+	height: 18px;
+	border: 2px solid rgba(255, 255, 255, 0.3);
+	border-top-color: #ffffff;
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.card-footer {
+	text-align: center;
+	margin-top: 24px;
+	padding-top: 20px;
+	border-top: 1px solid var(--border-subtle);
+	font-size: 13px;
+	color: var(--text-secondary);
+
+	.login-link {
+		color: var(--accent-base);
+		text-decoration: none;
+		font-weight: 600;
+		margin-left: 4px;
+
+		&:hover {
+			text-decoration: underline;
+		}
+	}
 }
 </style>
