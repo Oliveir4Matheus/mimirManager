@@ -50,7 +50,11 @@ const router = createRouter({
 		{
 			path: '/',
 			name: 'home',
+			alias: '/overview',
 			component: () => import('@/views/Home.vue'),
+			meta: {
+				title: 'Overview',
+			},
 		},
 		{
 			path: '/:pathMatch(.*)*',
