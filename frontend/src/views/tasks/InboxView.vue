@@ -1,35 +1,5 @@
 <template>
 	<div class="inbox-page">
-		<!-- Top Bar / Breadcrumb & Header Actions -->
-		<header class="top-header">
-			<div class="breadcrumb">
-				<span class="breadcrumb-item">MimirManager</span>
-				<span class="breadcrumb-separator">/</span>
-				<span class="breadcrumb-current">Inbox</span>
-			</div>
-			<div class="header-actions">
-				<button
-					type="button"
-					class="icon-btn"
-					title="Pesquisar"
-				>
-					<Icon icon="search" />
-				</button>
-				<button
-					type="button"
-					class="icon-btn"
-					title="Notificações"
-				>
-					<Icon icon="bell" />
-				</button>
-				<div class="user-profile">
-					<div class="avatar">
-						{{ userInitials }}
-					</div>
-					<span class="username">{{ authStore.userDisplayName }}</span>
-				</div>
-			</div>
-		</header>
 
 		<!-- Toolbar: Tabs & Controls -->
 		<div class="toolbar">

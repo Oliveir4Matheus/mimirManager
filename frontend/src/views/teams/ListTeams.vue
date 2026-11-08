@@ -1,40 +1,5 @@
 <template>
 	<div class="teams-page">
-		<!-- Top Bar / Breadcrumb & Header Actions -->
-		<header class="top-header">
-			<div class="breadcrumb">
-				<span class="breadcrumb-item">MimirManager</span>
-				<span class="breadcrumb-separator">/</span>
-				<span class="breadcrumb-current">Teams</span>
-			</div>
-			<div class="header-actions">
-				<button
-					type="button"
-					class="icon-btn"
-					title="Pesquisar"
-					@click="showToast('Pesquisa rápida')"
-				>
-					<Icon icon="search" />
-				</button>
-				<button
-					type="button"
-					class="icon-btn"
-					title="Notificações"
-					@click="showToast('Nenhuma notificação nova')"
-				>
-					<Icon icon="bell" />
-				</button>
-				<div
-					class="user-profile"
-					@click="showToast('Perfil do usuário')"
-				>
-					<div class="avatar">
-						{{ userInitials }}
-					</div>
-					<span class="username">{{ authStore.userDisplayName || 'Matheus' }}</span>
-				</div>
-			</div>
-		</header>
 
 		<!-- Content Area -->
 		<main class="content-area">

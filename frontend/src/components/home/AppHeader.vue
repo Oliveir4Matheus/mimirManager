@@ -1,95 +1,79 @@
 <template>
 	<header
-		:class="{ 'has-background': background, 'menu-active': menuActive }"
-		aria-label="main navigation"
-		class="navbar d-print-none"
+		class="top-header"
+		:class="{'menu-active': menuActive}"
+		:style="{'--sidebar-width': sidebarWidthStyle}"
 	>
-		<RouterLink
-			:to="{ name: 'home' }"
-			class="logo-link"
-			:aria-label="$t('navigation.home')"
-		>
-			<Logo
-				width="164"
-				height="48"
-			/>
-		</RouterLink>
+		<div class="header-left">
+			<MenuButton class="menu-button" />
 
-		<MenuButton class="menu-button" />
-
-		<div
-			v-if="currentProject?.id"
-			class="project-title-wrapper"
-		>
-			<span class="project-title">
-				{{ currentProject.title === '' ? $t('misc.loading') : getProjectTitle(currentProject) }}
-			</span>
-
-			<BaseButton
-				v-if="!isEditorContentEmpty(currentProject.description)"
-				:to="{ name: 'project.info', params: { projectId: currentProject.id } }"
-				class="project-title-button"
+			<div
+				v-if="currentProject?.id"
+				class="breadcrumb"
 			>
-				<span class="is-sr-only">{{ $t('project.description') }}</span>
-				<Icon icon="circle-info" />
-			</BaseButton>
+				<span class="breadcrumb-item">MimirManager</span>
+				<span class="breadcrumb-separator">/</span>
+				<span class="breadcrumb-current">{{ currentProject.title === '' ? $t('misc.loading') : getProjectTitle(currentProject) }}</span>
 
-			<ProjectSettingsDropdown
-				v-if="canWriteCurrentProject && currentProject.id !== -1"
-				class="project-title-dropdown"
-				:project="currentProject"
+				<BaseButton
+					v-if="!isEditorContentEmpty(currentProject.description)"
+					:to="{ name: 'project.info', params: { projectId: currentProject.id } }"
+					class="icon-btn-inline"
+					:title="$t('project.description')"
+				>
+					<Icon icon="circle-info" />
+				</BaseButton>
+
+				<ProjectSettingsDropdown
+					v-if="canWriteCurrentProject && currentProject.id !== -1"
+					class="project-title-dropdown"
+					:project="currentProject"
+				>
+					<template #trigger="{ toggleOpen, open }">
+						<BaseButton
+							class="icon-btn-inline"
+							:aria-expanded="open"
+							@click="toggleOpen"
+						>
+							<Icon icon="ellipsis-h" />
+						</BaseButton>
+					</template>
+				</ProjectSettingsDropdown>
+			</div>
+
+			<div
+				v-else
+				class="breadcrumb"
 			>
-				<template #trigger="{ toggleOpen, open }">
-					<BaseButton
-						class="project-title-button"
-						:aria-expanded="open"
-						@click="toggleOpen"
-					>
-						<span class="is-sr-only">{{ $t('project.openSettingsMenu') }}</span>
-						<Icon
-							icon="ellipsis-h"
-							class="icon"
-						/>
-					</BaseButton>
-				</template>
-			</ProjectSettingsDropdown>
+				<span class="breadcrumb-item">MimirManager</span>
+				<span class="breadcrumb-separator">/</span>
+				<span class="breadcrumb-current">{{ currentSectionName }}</span>
+			</div>
 		</div>
 
-		<div
-			v-else-if="pageTitle"
-			class="project-title-wrapper"
-		>
-			<span class="project-title">{{ pageTitle }}</span>
-		</div>
-
-		<div class="navbar-end">
+		<div class="header-actions">
 			<TimerBadge />
-			<OpenQuickActions />
-			<Notifications />
-			<Dropdown>
+			<OpenQuickActions class="action-btn-wrapper" />
+			<Notifications class="action-btn-wrapper" />
+			<Dropdown class="user-dropdown">
 				<template #trigger="{ toggleOpen, open }">
-					<BaseButton
-						class="username-dropdown-trigger"
-						variant="secondary"
-						:shadow="false"
+					<div
+						class="user-profile"
 						:aria-expanded="open"
 						@click="toggleOpen"
 					>
-						<UserAvatar
-							:user="authStore.info"
-							:size="40"
-							class="avatar"
-						/>
-						<span class="username">{{ authStore.userDisplayName }}</span>
-						<span
-							class="mis-1 dropdown-icon icon is-small"
+						<div class="avatar">
+							{{ userInitials }}
+						</div>
+						<span class="username">{{ authStore.userDisplayName || 'Matheus' }}</span>
+						<Icon
+							icon="chevron-down"
+							class="dropdown-icon"
 							:style="{
 								transform: open ? 'rotate(180deg)' : 'rotate(0)',
 							}"
-						>
-							<Icon icon="chevron-down" />
-						</span>
-					</BaseButton>
+						/>
+					</div>
 				</template>
 
 				<DropdownItem :to="{ name: 'user.settings' }">
@@ -135,11 +119,9 @@ import Dropdown from '@/components/misc/Dropdown.vue'
 import DropdownItem from '@/components/misc/DropdownItem.vue'
 import Notifications from '@/components/notifications/Notifications.vue'
 import TimerBadge from '@/components/time-tracking/TimerBadge.vue'
-import Logo from '@/components/home/Logo.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import MenuButton from '@/components/home/MenuButton.vue'
 import OpenQuickActions from '@/components/misc/OpenQuickActions.vue'
-import UserAvatar from '@/components/misc/UserAvatar.vue'
 
 import { getProjectTitle } from '@/helpers/getProjectTitle'
 import { isEditorContentEmpty } from '@/helpers/editorContentEmpty'
@@ -147,12 +129,13 @@ import { isEditorContentEmpty } from '@/helpers/editorContentEmpty'
 import { useBaseStore } from '@/stores/base'
 import { useConfigStore } from '@/stores/config'
 import { useAuthStore } from '@/stores/auth'
-import {useCurrentProject} from '@/composables/useCurrentProject'
-import {useLegalLinks} from '@/composables/useLegalLinks'
+import { useCurrentProject } from '@/composables/useCurrentProject'
+import { useLegalLinks } from '@/composables/useLegalLinks'
+import { useSidebarResize } from '@/composables/useSidebarResize'
 
 const baseStore = useBaseStore()
-const {currentProject} = useCurrentProject()
-const background = computed(() => baseStore.background)
+const { currentProject } = useCurrentProject()
+const { sidebarWidthStyle } = useSidebarResize()
 const canWriteCurrentProject = computed(() =>
 	currentProject.value?.max_permission !== null &&
 	currentProject.value?.max_permission !== undefined &&
@@ -160,15 +143,35 @@ const canWriteCurrentProject = computed(() =>
 )
 const menuActive = computed(() => baseStore.menuActive)
 
-// Standalone pages (no project) surface their route's title in the header.
 const route = useRoute()
 const { t } = useI18n()
-const pageTitle = computed(() => {
+
+const currentSectionName = computed(() => {
+	const name = route.name as string | undefined
+	if (!name) return 'Overview'
+	if (name === 'home') return 'Overview'
+	if (name === 'inbox') return 'Inbox'
+	if (name === 'tasks.range') return 'Upcoming'
+	if (name === 'projects.index') return 'Projects'
+	if (name === 'project.new') return 'Novo Projeto'
+	if (name === 'labels.index') return 'Labels'
+	if (name === 'teams.index') return 'Teams'
+	if (name === 'teams.new') return 'Criar Equipe'
+	if (name === 'teams.edit') return 'Editar Equipe'
+	if (name === 'trash' || name.startsWith('trash.')) return 'Trash'
+	if (name === 'time-tracking') return 'Time Tracking'
+	if (name.startsWith('user.settings')) return t('user.settings.title') || 'Configurações'
+	if (name.startsWith('admin.')) return t('admin.title') || 'Administração'
+	if (name === 'about') return t('about.title') || 'Sobre'
 	const title = route.meta.title as string | undefined
-	return title ? t(title) : ''
+	return title ? t(title) : 'Overview'
 })
 
 const authStore = useAuthStore()
+const userInitials = computed(() => {
+	const name = authStore.userDisplayName || 'Matheus'
+	return name.charAt(0).toUpperCase()
+})
 
 const configStore = useConfigStore()
 const legalLinks = useLegalLinks()
@@ -176,162 +179,162 @@ const adminPanelEnabled = computed(() => configStore.isProFeatureEnabled(PRO_FEA
 </script>
 
 <style lang="scss" scoped>
-$user-dropdown-width-mobile: 5rem;
-
-.navbar {
-	--navbar-button-min-width: 40px;
-	--navbar-gap-width: 1rem;
-	--navbar-icon-size: 1.25rem;
-
+.top-header {
+	height: 48px;
 	position: fixed;
 	inset-block-start: 0;
-	inset-inline-start: 0;
+	inset-inline-start: var(--sidebar-width, 240px);
 	inset-inline-end: 0;
 	z-index: 30;
-
 	display: flex;
 	justify-content: space-between;
-	gap: var(--navbar-gap-width);
-	min-block-size: $navbar-height;
+	align-items: center;
+	padding: 0 24px;
+	border-bottom: 1px solid var(--border-color);
+	background: var(--bg-app);
+	transition: inset-inline-start $transition-duration;
 
-	background: var(--site-background);
-
-	@media screen and (min-width: $tablet) {
-		padding-inline-start: 2rem;
-		align-items: stretch;
-	}
-
-	&.menu-active {
-		@media screen and (max-width: $tablet) {
-			z-index: 0;
-		}
-	}
-
-	// FIXME: notifications should provide a slot for the icon instead, so that we can style it as we want
-	:deep() {
-		.trigger-button {
-			color: var(--grey-400);
-			font-size: var(--navbar-icon-size);
-		}
+	@media screen and (max-width: $tablet) {
+		inset-inline-start: 0;
+		padding: 0 16px;
 	}
 }
 
-.logo-link {
-	display: none;
-
-	@media screen and (min-width: $tablet) {
-		align-self: stretch;
-		display: flex;
-		align-items: center;
-		margin-inline-end: .5rem;
-	}
+.header-left {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
 }
 
 .menu-button {
-	margin-inline-end: auto;
-	align-self: stretch;
-	flex: 0 0 auto;
+	display: none;
 
 	@media screen and (max-width: $tablet) {
-		margin-inline-start: 1rem;
+		display: flex;
 	}
 }
 
-.project-title-wrapper {
-	margin-inline: auto;
+.breadcrumb {
 	display: flex;
 	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--text-primary);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 
-	// this makes the truncated text of the project title work
-	// inside the flexbox parent
-	min-inline-size: 0;
+	.breadcrumb-item {
+		color: var(--text-secondary);
+		font-weight: 500;
+	}
 
-	@media screen and (min-width: $tablet) {
-		padding-inline: var(--navbar-gap-width);
+	.breadcrumb-separator {
+		color: var(--text-tertiary);
+		font-weight: 400;
+	}
+
+	.breadcrumb-current {
+		color: var(--text-primary);
+		font-weight: 600;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 }
 
-.project-title {
-	font-size: 1rem;
-	// We need the following for overflowing ellipsis to work
-	text-overflow: ellipsis;
-	overflow: hidden;
-	white-space: nowrap;
+.icon-btn-inline {
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	color: var(--text-secondary);
+	padding: 2px 4px;
+	border-radius: 4px;
+	display: inline-flex;
+	align-items: center;
 
-	@media screen and (min-width: $tablet) {
-		font-size: 1.75rem;
+	&:hover {
+		background: var(--bg-hover);
+		color: var(--text-primary);
 	}
 }
 
 .project-title-dropdown {
-	align-self: stretch;
-
-	.project-title-button {
-		flex-grow: 1;
-	}
-}
-
-.project-title-button {
-	align-self: stretch;
-	min-inline-size: var(--navbar-button-min-width);
-	display: flex;
-	place-items: center;
-	justify-content: center;
-	font-size: var(--navbar-icon-size);
-	color: var(--grey-400);
-}
-
-.navbar-end {
-	flex: 0 0 auto;
-	display: flex;
-	align-items: stretch;
-
-	>* {
-		min-inline-size: var(--navbar-button-min-width);
-	}
-}
-
-.username-dropdown-trigger {
-	padding-inline-start: .75rem;
 	display: inline-flex;
 	align-items: center;
-	font-size: .85rem;
-	font-weight: 700;
-	gap: .5rem;
-	
-	:deep(.avatar) {
-		margin-inline-end: 0;
-	}
-	
-	[dir="rtl"] & {
-		flex-direction: row-reverse;
-	}
+}
 
-	@media screen and (max-width: $tablet) {
-		padding-inline-end: .5rem;
-	}
+.header-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
 
-	@media screen and (min-width: $tablet) {
-		padding-inline-end: .75rem;
+	:deep(.trigger-button) {
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		color: var(--text-secondary);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 6px;
+		border-radius: 6px;
+		width: 32px;
+		height: 32px;
+		font-size: 14px;
+		transition: background 0.15s, color 0.15s;
+
+		&:hover {
+			background: var(--bg-hover);
+			color: var(--text-primary);
+		}
 	}
 }
 
-.username {
-	font-family: $vikunja-font;
+.user-profile {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 8px;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 500;
+	transition: background 0.15s;
 
-	@media screen and (max-width: $tablet) {
-		display: none;
+	&:hover {
+		background: var(--bg-hover);
 	}
-}
 
-.dropdown-icon {
-	transition: transform $transition;
-}
+	.avatar {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		background: #e0e7ff;
+		color: var(--accent-base);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 11px;
+		font-weight: 600;
+		flex-shrink: 0;
+	}
 
-.avatar {
-	border-radius: 100%;
-	vertical-align: middle;
-	block-size: 40px;
-	margin-inline-end: .5rem;
+	.username {
+		color: var(--text-primary);
+		white-space: nowrap;
+
+		@media screen and (max-width: $tablet) {
+			display: none;
+		}
+	}
+
+	.dropdown-icon {
+		font-size: 11px;
+		color: var(--text-tertiary);
+		transition: transform 0.2s ease;
+	}
 }
 </style>

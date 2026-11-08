@@ -185,31 +185,29 @@ onBeforeUnmount(() => {
 }
 
 .app-container {
-	min-block-size: calc(100vh - 65px);
-
-	@media screen and (max-width: $tablet) {
-		padding-block-start: $navbar-height;
-	}
+	min-block-size: 100vh;
+	background: var(--bg-app);
 }
 
 .app-content {
-	--sidebar-width: #{$navbar-width};
+	--sidebar-width: 240px;
 
 	display: flow-root;
 	z-index: 10;
 	position: relative;
-	padding: 1.5rem 0.5rem 0;
-	// TODO refactor: DRY `transition-timing-function` with `./Navigation.vue`.
+	padding: 48px 0 0 0;
 	transition: margin-inline-start $transition-duration;
+	min-height: 100vh;
+	background: var(--bg-app);
 
 	@media screen and (max-width: $tablet) {
 		margin-inline-start: 0;
 		margin-inline-end: 0;
-		min-block-size: calc(100vh - 4rem);
+		padding-top: 48px;
 	}
 
 	@media screen and (min-width: $tablet) {
-		padding: $navbar-height + 1.5rem 1.5rem 0 1.5rem;
+		padding: 48px 0 0 0;
 	}
 
 	&.is-menu-enabled {
