@@ -456,8 +456,35 @@ async function submit() {
 
 <style lang="scss" scoped>
 .register-page-wrapper {
-	/* Design Tokens */
-	--font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	/* Design Tokens - Light Theme Default */
+	--font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	--bg-app: #f9f9f9;
+	--bg-card: #ffffff;
+	--bg-input: #ffffff;
+	--bg-hover: #f4f4f5;
+	--text-primary: #111111;
+	--text-secondary: #6b6b6b;
+	--text-tertiary: #9ca3af;
+	--border-color: #e5e5e5;
+	--border-subtle: #f0f0f0;
+	--border-focus: #5e6ad2;
+	--accent-base: #5e6ad2;
+	--accent-hover: #4b56b8;
+	--accent-gradient: linear-gradient(135deg, #5e6ad2 0%, #8b5cf6 100%);
+	--shadow-card: 0 8px 24px rgba(0, 0, 0, 0.06);
+
+	font-family: var(--font-family);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 100vh;
+	width: 100%;
+	padding: 24px;
+	box-sizing: border-box;
+	background: radial-gradient(circle at 50% 20%, rgba(94, 106, 210, 0.06), transparent 70%), var(--bg-app);
+}
+
+:global(html.dark) .register-page-wrapper {
 	--bg-app: #0d0e12;
 	--bg-card: #181b22;
 	--bg-input: #1f232d;
@@ -468,51 +495,24 @@ async function submit() {
 	--border-color: #232836;
 	--border-subtle: #1c202c;
 	--border-focus: #5e6ad2;
-	--accent-base: #5e6ad2;
-	--accent-hover: #4b56b8;
-	--accent-gradient: linear-gradient(135deg, #5e6ad2 0%, #8b5cf6 100%);
 	--shadow-card: 0 12px 32px rgba(0, 0, 0, 0.4);
-
-	font-family: var(--font-family);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 100vh;
-	width: 100%;
-	padding: 24px;
-	box-sizing: border-box;
 	background: radial-gradient(circle at 50% 20%, rgba(94, 106, 210, 0.15), transparent 70%), var(--bg-app);
 }
 
-:global(html.light) .register-page-wrapper {
-	--bg-app: #f9f9f9;
-	--bg-card: #ffffff;
-	--bg-input: #f1f3f7;
-	--bg-hover: #f4f4f5;
-	--text-primary: #111111;
-	--text-secondary: #6b6b6b;
-	--text-tertiary: #9ca3af;
-	--border-color: #e5e5e5;
-	--border-subtle: #f0f0f0;
-	--border-focus: #5e6ad2;
-	--shadow-card: 0 8px 24px rgba(0, 0, 0, 0.08);
-	background: radial-gradient(circle at 50% 20%, rgba(94, 106, 210, 0.08), transparent 70%), var(--bg-app);
-}
-
-@media (prefers-color-scheme: light) {
-	:global(html:not(.dark)) .register-page-wrapper {
-		--bg-app: #f9f9f9;
-		--bg-card: #ffffff;
-		--bg-input: #f1f3f7;
-		--bg-hover: #f4f4f5;
-		--text-primary: #111111;
-		--text-secondary: #6b6b6b;
-		--text-tertiary: #9ca3af;
-		--border-color: #e5e5e5;
-		--border-subtle: #f0f0f0;
+@media (prefers-color-scheme: dark) {
+	:global(html:not(.light)) .register-page-wrapper {
+		--bg-app: #0d0e12;
+		--bg-card: #181b22;
+		--bg-input: #1f232d;
+		--bg-hover: #262a36;
+		--text-primary: #f0f2f5;
+		--text-secondary: #9aa1b2;
+		--text-tertiary: #656c80;
+		--border-color: #232836;
+		--border-subtle: #1c202c;
 		--border-focus: #5e6ad2;
-		--shadow-card: 0 8px 24px rgba(0, 0, 0, 0.08);
-		background: radial-gradient(circle at 50% 20%, rgba(94, 106, 210, 0.08), transparent 70%), var(--bg-app);
+		--shadow-card: 0 12px 32px rgba(0, 0, 0, 0.4);
+		background: radial-gradient(circle at 50% 20%, rgba(94, 106, 210, 0.15), transparent 70%), var(--bg-app);
 	}
 }
 
