@@ -1227,8 +1227,44 @@ function setRelatedTasksActive() {
 
 <style lang="scss" scoped>
 .task-view-container {
-	// simulate sass lighten($primary, 30) by increasing lightness 30% to 73%
-	--primary-light: hsla(var(--primary-h), var(--primary-s), 73%, var(--primary-a));
+	/* Linear Design Tokens (Clean Light Default) */
+	--font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	--bg-app: #f9f9f9;
+	--bg-sidebar: #fcfcfc;
+	--bg-panel: #ffffff;
+	--bg-card: #ffffff;
+	--bg-input: #f1f3f7;
+	--bg-hover: #f4f4f5;
+	
+	--text-primary: #111111;
+	--text-secondary: #6b6b6b;
+	--text-tertiary: #9ca3af;
+	
+	--border-color: #e5e5e5;
+	--border-subtle: #f0f0f0;
+	--border-focus: #5e6ad2;
+	
+	--accent-base: #5e6ad2;
+	--accent-hover: #4a55b5;
+	--accent-bg: rgba(94, 106, 210, 0.1);
+	
+	--success-base: #10b981;
+	--success-hover: #059669;
+	--success-bg: rgba(16, 185, 129, 0.1);
+
+	--warning-base: #f59e0b;
+	--warning-bg: rgba(245, 158, 11, 0.1);
+	
+	--danger-base: #e5484d;
+	--danger-bg: rgba(229, 72, 77, 0.1);
+
+	--shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+	--shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+	font-family: var(--font-family);
+	background-color: var(--bg-app);
+	color: var(--text-primary);
+	min-height: 100vh;
 	padding-block-end: 0;
 
 	@media screen and (min-width: $desktop) {
@@ -1236,21 +1272,61 @@ function setRelatedTasksActive() {
 	}
 }
 
+:global(html.dark) .task-view-container,
+:global(body.dark-theme) .task-view-container {
+	--bg-app: #0d0e12;
+	--bg-sidebar: #12141a;
+	--bg-panel: #141720;
+	--bg-card: #181b24;
+	--bg-input: #1b1f2b;
+	--bg-hover: #222736;
+	
+	--text-primary: #f0f2f5;
+	--text-secondary: #9aa1b2;
+	--text-tertiary: #656c80;
+	
+	--border-color: #232836;
+	--border-subtle: #1c202c;
+	--border-focus: #5e6ad2;
+	
+	--accent-base: #5e6ad2;
+	--accent-hover: #4b56b8;
+	--accent-bg: rgba(94, 106, 210, 0.15);
+	
+	--success-base: #10b981;
+	--success-hover: #059669;
+	--success-bg: rgba(16, 185, 129, 0.15);
+	
+	--warning-base: #f59e0b;
+	--warning-bg: rgba(245, 158, 11, 0.15);
+	
+	--danger-base: #ef4444;
+	--danger-bg: rgba(239, 68, 68, 0.12);
+
+	--shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+	--shadow-dropdown: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
 .task-view {
-	padding-block-start: 1rem;
-	padding-inline: .5rem;
-	background-color: var(--site-background);
+	padding-block-start: 1.5rem;
+	padding-inline: 1.5rem;
+	background-color: var(--bg-app);
+	color: var(--text-primary);
+	max-width: 1400px;
+	margin: 0 auto;
 
 	@media screen and (min-width: $desktop) {
-		padding: 1rem;
+		padding: 2rem 2.5rem;
 	}
 }
 
 .is-modal .task-view {
-	border-radius: $radius;
-	padding: 1rem;
-	color: var(--text);
-	background-color: var(--site-background) !important;
+	border-radius: 8px;
+	padding: 1.5rem;
+	color: var(--text-primary);
+	background-color: var(--bg-card) !important;
+	border: 1px solid var(--border-color);
+	box-shadow: var(--shadow-dropdown);
 
 	@media screen and (width <= calc(#{$desktop} + 1px)) {
 		border-radius: 0;
@@ -1265,26 +1341,104 @@ function setRelatedTasksActive() {
 	opacity: 0;
 }
 
-.subtitle {
-	color: var(--grey-500);
-	margin-block-end: 1rem;
+.back-button {
+	background: var(--bg-card);
+	border: 1px solid var(--border-color);
+	color: var(--text-secondary);
+	border-radius: 6px;
+	padding: 6px 12px;
+	font-size: 13px;
+	font-weight: 500;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 16px;
+	transition: all 0.15s ease;
 
-	a {
-		color: var(--grey-800);
+	&:hover {
+		background: var(--bg-hover);
+		color: var(--text-primary);
+		border-color: var(--border-focus);
 	}
 }
 
-h2 .button {
-	vertical-align: middle;
+.subtitle {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	color: var(--text-tertiary);
+	margin-block-end: 1.5rem;
+
+	a {
+		color: var(--text-secondary);
+		text-decoration: none;
+		font-weight: 500;
+		transition: color 0.15s;
+
+		&:hover {
+			color: var(--text-primary);
+		}
+	}
 }
 
-.icon.is-grey {
-	color: var(--grey-400);
+.task-columns {
+	display: flex;
+	gap: 28px;
+	align-items: flex-start;
+
+	@media screen and (max-width: $tablet), print {
+		flex-direction: column;
+	}
 }
 
-.details {
-	padding-block-end: 0.75rem;
-	margin-block-end: 0;
+.detail-content {
+	flex: 1;
+	min-width: 0;
+
+	@media print {
+		inline-size: 100% !important;
+	}
+
+	.description {
+		background: var(--bg-card);
+		border: 1px solid var(--border-color);
+		border-radius: 8px;
+		padding: 20px;
+		margin-bottom: 24px;
+		box-shadow: var(--shadow-card);
+	}
+
+	.attachments {
+		background: var(--bg-card);
+		border: 1px solid var(--border-color);
+		border-radius: 8px;
+		padding: 16px 20px;
+		margin-bottom: 24px;
+		box-shadow: var(--shadow-card);
+	}
+
+	.time-tracking,
+	.details {
+		background: var(--bg-card);
+		border: 1px solid var(--border-color);
+		border-radius: 8px;
+		padding: 16px 20px;
+		margin-bottom: 24px;
+		box-shadow: var(--shadow-card);
+	}
+}
+
+.task-section-title {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-secondary);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 12px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 :deep(.details),
@@ -1293,10 +1447,14 @@ h2 .button {
 	.textarea,
 	.select:not(.has-defaults) select {
 		cursor: pointer;
-		transition: all $transition-duration;
+		background: var(--bg-card);
+		border-color: var(--border-color);
+		color: var(--text-primary);
+		border-radius: 6px;
+		transition: all 0.15s ease;
 
 		&::placeholder {
-			color: var(--text-light);
+			color: var(--text-tertiary);
 			opacity: 1;
 			font-style: italic;
 		}
@@ -1305,152 +1463,135 @@ h2 .button {
 			&:hover,
 			&:active,
 			&:focus {
-				background: var(--scheme-main);
-				border-color: var(--border);
+				background: var(--bg-hover);
+				border-color: var(--border-focus);
 				cursor: text;
-			}
-
-			&:hover,
-			&:active {
-				cursor: text;
-				border-color: var(--link)
 			}
 		}
 	}
-
-	.select:not(.has-defaults):after {
-		opacity: 0;
-	}
-
-	.select:not(.has-defaults):hover:after {
-		opacity: 1;
-	}
 }
 
-.attachments {
-	margin-block-end: 0;
-
-	table tr:last-child td {
-		border-inline-end: none;
-	}
-}
-
-// keep the title clear of the modal's fixed close button
-.is-modal .heading {
-	@media screen and (min-width: $tablet) and (max-width: $desktop) {
-		padding-inline-end: 3.5rem;
-	}
-}
-
-.checklist-summary {
-	padding-inline-start: .25rem;
-}
-
-.detail-content {
-	@media print {
-		inline-size: 100% !important;
-	}
-}
-
-// Bulma stacks columns as blocks on narrow screens, so flex is needed for `order`.
-.task-columns {
-	@media screen and (max-width: $tablet), print {
-		display: flex;
-		flex-direction: column;
-	}
-}
-
-// Not sticky: the list can outgrow the viewport and its popups open downwards.
+/* Linear Right Sidebar */
 .task-sidebar {
-	container: task-sidebar / inline-size;
+	width: 320px;
+	min-width: 320px;
+	flex-shrink: 0;
+	margin-left: auto;
 
 	@media screen and (max-width: $tablet), print {
+		width: 100%;
+		min-width: 100%;
 		order: -1;
 	}
 
-	@media print {
-		inline-size: 100% !important;
+	.sidebar-toolbar {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 16px;
 
-		.property:not(.is-set),
-		.chevron,
-		:deep(.multiselect input),
-		:deep(.remove-assignee),
-		:deep(.tag .delete),
-		:deep(.reminders .remove),
-		:deep(.reminders > :not(.reminder-input)) {
-			display: none;
+		.button--mark-done {
+			flex: 1;
+			height: 38px;
+			border-radius: 6px;
+			font-size: 13px;
+			font-weight: 600;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			cursor: pointer;
+			transition: all 0.15s ease;
+
+			&.is-pending {
+				background: var(--success-bg);
+				border: 1px solid var(--success-base);
+				color: var(--success-base);
+
+				&:hover {
+					background: var(--success-base);
+					color: #ffffff;
+				}
+			}
+
+			&:not(.is-pending) {
+				background: var(--bg-input);
+				border: 1px solid var(--border-color);
+				color: var(--text-tertiary);
+
+				&:hover {
+					background: var(--bg-hover);
+					color: var(--text-primary);
+				}
+			}
 		}
-	}
-}
 
-.sidebar-toolbar {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: stretch;
-	gap: .375rem;
-	margin-block-end: .75rem;
-
-	.button--mark-done {
-		flex: 1 1 10rem;
-		line-height: 1.25;
-		padding-block: .25rem;
-		text-transform: none;
-		justify-content: flex-start;
-		text-align: start;
-		background-color: transparent;
-		box-shadow: none;
-
-		// bright brand green with fixed dark text passes contrast in both themes
-		&.is-pending {
-			background-color: var(--success);
-			color: hsl(215, 27.9%, 16.9%);
+		.toolbar-icon-button {
+			width: 38px;
+			height: 38px;
+			border-radius: 6px;
+			border: 1px solid var(--border-color);
+			background: var(--bg-card);
+			color: var(--text-secondary);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			transition: all 0.15s ease;
 
 			&:hover,
-			&:focus {
-				filter: brightness(1.05);
+			&:focus-visible {
+				background: var(--bg-hover);
+				color: var(--text-primary);
+				border-color: var(--border-focus);
+			}
+
+			&.is-favorite {
+				color: #f59e0b;
+				border-color: rgba(245, 158, 11, 0.4);
+				background: rgba(245, 158, 11, 0.1);
 			}
 		}
 	}
-}
 
-.toolbar-icon-button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	inline-size: 2.5rem;
-	min-block-size: $button-height;
-	border-radius: $radius;
-	border: 1px solid var(--grey-300);
-	color: var(--grey-600);
-	background: var(--scheme-main);
-	transition: color $transition, background-color $transition, border-color $transition, transform 100ms ease;
-
-	&:hover,
-	&:focus-visible {
-		color: var(--text);
-		border-color: var(--grey-400);
-	}
-
-	&:active {
-		transform: scale(.95);
-	}
-
-	&.is-favorite {
-		color: var(--warning);
-		border-color: color-mix(in srgb, var(--warning) 40%, transparent);
-		background: color-mix(in srgb, var(--warning) 10%, var(--scheme-main));
+	.property-list {
+		background: var(--bg-card);
+		border: 1px solid var(--border-color);
+		border-radius: 8px;
+		box-shadow: var(--shadow-card);
+		overflow: hidden;
+		margin-bottom: 16px;
 	}
 }
 
 .property-list {
 	margin: 0;
-	border-block-start: 1px solid var(--grey-200);
-	font-size: .9375rem;
+	font-size: 13px;
+}
+
+:deep(.property-row),
+.property {
+	padding: 10px 14px;
+	border-bottom: 1px solid var(--border-subtle);
+	font-size: 13px;
+
+	&:last-child {
+		border-bottom: none;
+	}
+
+	> dt {
+		color: var(--text-secondary);
+		font-weight: 500;
+	}
+
+	> dd {
+		color: var(--text-primary);
+	}
 }
 
 .property-empty,
 .property:not(.is-set) > :deep(dd select) {
-	color: var(--grey-600);
+	color: var(--text-tertiary);
 	font-style: italic;
 }
 
@@ -1460,19 +1601,19 @@ h2 .button {
 	gap: .375rem;
 	flex: 1;
 	min-block-size: 2rem;
-	border-radius: $radius;
+	border-radius: 6px;
 	text-align: start;
-	color: var(--text);
-	transition: background-color $transition;
+	color: var(--text-primary);
+	transition: background-color 0.15s;
 
 	.chevron {
 		inline-size: .625rem;
-		color: var(--grey-400);
+		color: var(--text-tertiary);
 		transition: transform 200ms ease;
 	}
 
 	&:not(:disabled):hover {
-		background: var(--scheme-main);
+		background: var(--bg-hover);
 	}
 
 	.is-expanded & .chevron {
@@ -1483,10 +1624,9 @@ h2 .button {
 .property-editor {
 	grid-column: 1 / -1;
 	padding: .25rem 0 .25rem .5rem;
-	border-inline-start: 2px solid var(--grey-200);
+	border-inline-start: 2px solid var(--border-color);
 	margin-block-start: .25rem;
 
-	// Bulma addons don't shrink, which pushes the unit select out of the narrow sidebar.
 	:deep(.field.has-addons) {
 		min-inline-size: 0;
 
@@ -1497,207 +1637,8 @@ h2 .button {
 	}
 }
 
-.property > dd {
-	.multiselect {
-		inline-size: 100%;
-		min-inline-size: 0;
-
-		:deep(input) {
-			flex: 1 1 5rem;
-			min-inline-size: 5rem;
-			inline-size: auto;
-			text-overflow: ellipsis;
-		}
-
-		:deep(.tag) {
-			max-inline-size: 100%;
-
-			> span {
-				min-inline-size: 0;
-				overflow: hidden;
-				text-overflow: ellipsis;
-			}
-		}
-
-		:deep(.input-wrapper:not(:focus-within)) {
-			// Beats Multiselect's !important hover border.
-			border-color: transparent !important;
-
-			&:not(:hover) {
-				background: transparent;
-			}
-		}
-	}
-
-	.user-is-tabbing & .multiselect :deep(.input-wrapper:focus-within) {
-		@include focus-ring;
-
-		.input {
-			box-shadow: none;
-		}
-	}
-
-	.datepicker {
-		flex: 1;
-		min-inline-size: 0;
-
-		:deep(.show) {
-			color: var(--text);
-			transition: background-color $transition;
-			border-radius: $radius;
-			display: block;
-			inline-size: 100%;
-			min-block-size: 2rem;
-			text-align: start;
-
-			i {
-				color: var(--grey-600);
-			}
-
-			&:hover:not(:disabled) {
-				background: var(--scheme-main);
-			}
-		}
-	}
-
-	// The selects' border, so keyboard focus looks the same without moving the text.
-	.datepicker :deep(.show),
-	.reminders :deep(.simple-button:not(.option-button)),
-	.property-value-button {
-		border: 1px solid transparent;
-		padding: calc(.25rem - 1px) calc(.5rem - 1px);
-
-		&:not(:disabled):focus-visible {
-			border-color: var(--primary);
-			background: var(--scheme-main);
-		}
-	}
-
-	.reminders {
-		inline-size: 100%;
-
-		:deep(.reminder-input:last-child) {
-			margin-block-end: 0;
-		}
-	}
-
-	.color-picker-container {
-		justify-content: flex-start;
-		min-block-size: 2rem;
-		margin-block: .1rem;
-		padding-inline-start: .5rem;
-
-		:deep(.picker:has(:focus-visible)) {
-			border-color: var(--primary);
-			@include focus-ring;
-		}
-	}
-
-	.color-bubble {
-		inline-size: 1.25rem;
-		block-size: 1.25rem;
-		margin: calc(.375rem + .1rem) .5rem;
-	}
-}
-
-.property-assignees > dd {
-	// 1px border + .25rem padding + 1.375rem avatar = the other rows' 2rem controls.
-	.edit-assignees {
-		:deep(.input-wrapper) {
-			gap: .25rem;
-			margin-block: .1rem;
-			padding: .25rem .5rem;
-		}
-
-		:deep(input) {
-			block-size: 1.375rem;
-			padding: 0;
-		}
-	}
-
-	// The placeholder alone keeps the other rows' text inset.
-	.edit-assignees.has-assignees :deep(.input-wrapper) {
-		padding-inline-start: .25rem;
-	}
-
-	// Read-only list, without the Multiselect wrapper.
-	> .assignees-list {
-		min-block-size: 2rem;
-		margin-block: .1rem;
-		// The editable field's border + padding.
-		padding-inline: calc(.25rem + 1px);
-		align-items: center;
-	}
-}
-
-.property-assignees > :deep(dd .assignees-list) {
-	flex-wrap: wrap;
-	gap: .25rem;
-	transition: margin-inline-start $transition;
-
-	// Otherwise the wrapper's gap still pushes the input away.
-	&:empty {
-		display: none;
-	}
-
-	.assignee {
-		// The task view's `*` opacity transition overrides AssigneeList's.
-		transition: margin-inline-start $transition;
-
-		&:not(:first-child) {
-			margin-inline-start: 0;
-		}
-	}
-
-	.avatar-wrapper {
-		margin-inline-end: 0;
-	}
-
-	.avatar {
-		inline-size: 1.375rem;
-		block-size: 1.375rem;
-	}
-
-	.remove-assignee {
-		inset-block-start: -.25rem;
-		inset-inline: auto -.25rem;
-		inline-size: .75rem;
-		block-size: .75rem;
-		padding: 0;
-		font-size: .5rem;
-		box-shadow: var(--shadow-sm);
-	}
-
-	.user {
-		margin: 0;
-	}
-
-	.username {
-		display: none;
-	}
-}
-
-@media (hover: hover) {
-	// The list's margin offsets the avatars', so a wrapped line doesn't start outside the field.
-	.property-assignees:not(:hover, :focus-within) > :deep(dd .assignees-list) {
-		margin-inline-start: calc(.4375rem + .25rem);
-
-		.assignee {
-			margin-inline-start: calc(-.4375rem - .25rem);
-		}
-	}
-}
-
-:deep(.created) {
-	margin-block-start: 1rem;
-	font-size: .8125rem;
-	color: var(--grey-500);
-	text-align: start;
-}
-
 .scroll-to-comments-button {
 	position: fixed;
-	// Position above the keyboard shortcuts button (which is at bottom: calc(1rem - 4px))
 	inset-block-end: calc(var(--bottom-banners-end-height, 0px) + 2.5rem);
 	inset-inline-end: .75rem;
 	z-index: 10;
@@ -1708,35 +1649,33 @@ h2 .button {
 	align-items: center;
 	justify-content: center;
 	padding: 0;
-	background-color: var(--site-background);
-	border: 1px solid var(--grey-300);
-	color: var(--grey-500);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-	transition: all $transition;
+	background-color: var(--bg-card);
+	border: 1px solid var(--border-color);
+	color: var(--text-secondary);
+	box-shadow: var(--shadow-card);
+	transition: all 0.15s ease;
 
 	&:hover {
-		background-color: var(--grey-100);
-		color: var(--grey-700);
+		background-color: var(--bg-hover);
+		color: var(--text-primary);
+		border-color: var(--border-focus);
 	}
 
 	@media screen and (max-width: $tablet) {
-		// Hide on mobile since keyboard shortcuts button is also hidden
 		display: none;
 	}
 }
 </style>
 
 <style lang="scss">
-// global style to override position when the modal task detail is active
 .modal-content .scroll-to-comments-button {
 	inset-block-end: .75rem;
 	inset-inline-end: 1rem;
 }
 
-// the task card spans the full width here, so the modal's white close button sits on it instead of the scrim
 @media screen and (min-width: $tablet) and (max-width: $desktop) {
 	.modal-dialog:has(.task-view-container.is-modal) .modal-container > .close {
-		color: var(--text);
+		color: var(--text-primary);
 	}
 }
 </style>
