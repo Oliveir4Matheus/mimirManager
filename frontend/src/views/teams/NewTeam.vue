@@ -135,7 +135,7 @@
 										{{ collab.name }}
 									</div>
 									<div class="collab-meta">
-										{{ collab.email }} • <span class="collab-role">{{ collab.role }}</span>
+										{{ collab.email || collab.username }} <span class="collab-role">@{{ collab.username }}</span>
 									</div>
 								</div>
 							</div>
@@ -187,17 +187,21 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useRouter} from 'vue-router'
+import {useCreateTeamMutation, useAddTeamMemberMutation} from '@/client/queries/teams'
+import {useUserSearch} from '@/composables/useUserSearch'
 
 export interface Collaborator {
 	id: number
 	name: string
+	username: string
 	email: string
-	role: string
 	initials: string
 	color: string
 }
 
 const router = useRouter()
+const createTeamMutation = useCreateTeamMutation()
+const addMemberMutation = useAddTeamMemberMutation()
 
 const teamName = ref('')
 const teamDescription = ref('')
@@ -218,33 +222,29 @@ function showToast(msg: string) {
 	}, 3000)
 }
 
-const collaboratorsCatalog: Collaborator[] = [
-	{id: 1, name: 'Matheus Oliveira', email: 'matheus@empresa.com', role: 'Tech Lead / Eng', initials: 'MO', color: '#5e6ad2'},
-	{id: 2, name: 'Danilo Costa', email: 'danilo.costa@empresa.com', role: 'Product Operations', initials: 'DC', color: '#10b981'},
-	{id: 3, name: 'Ana Silva', email: 'ana.silva@empresa.com', role: 'UI/UX Designer', initials: 'AS', color: '#ec4899'},
-	{id: 4, name: 'Carlos Mendes', email: 'carlos.mendes@empresa.com', role: 'Senior Backend', initials: 'CM', color: '#f59e0b'},
-	{id: 5, name: 'Bruna Lima', email: 'bruna.lima@empresa.com', role: 'Frontend Engineer', initials: 'BL', color: '#8b5cf6'},
-	{id: 6, name: 'Felipe Rocha', email: 'felipe.rocha@empresa.com', role: 'QA & Compliance', initials: 'FR', color: '#06b6d4'},
-]
-
 const selectedMembers = ref<Collaborator[]>([])
 
-const filteredCollaborators = computed(() => {
-	const query = searchQuery.value.trim().toLowerCase()
-	return collaboratorsCatalog.filter(c => {
-		const alreadySelected = selectedMembers.value.some(m => m.id === c.id)
-		if (alreadySelected) return false
-		if (!query) return true
-		return (
-			c.name.toLowerCase().includes(query) ||
-			c.email.toLowerCase().includes(query) ||
-			c.role.toLowerCase().includes(query)
-		)
-	})
+const {users: userResults, isFetching: usersLoading} = useUserSearch(searchQuery)
+
+const filteredCollaborators = computed<Collaborator[]>(() => {
+	return userResults.value
+		.filter(u => u.id !== undefined && !selectedMembers.value.some(m => m.id === u.id))
+		.map(u => {
+			const displayName = u.name || u.username || 'User'
+			const initials = displayName.substring(0, 2).toUpperCase()
+			return {
+				id: u.id as number,
+				name: displayName,
+				username: u.username || '',
+				email: u.email || '',
+				initials,
+				color: '#5e6ad2',
+			}
+		})
 })
 
 const isDropdownVisible = computed(() => {
-	return isSearchFocused.value
+	return isSearchFocused.value && (filteredCollaborators.value.length > 0 || usersLoading.value)
 })
 
 function focusSearchInput() {
@@ -276,7 +276,7 @@ function cancel() {
 	router.push({name: 'teams.index'})
 }
 
-function createTeam() {
+async function createTeam() {
 	if (!teamName.value.trim()) {
 		showError.value = true
 		return
@@ -284,12 +284,32 @@ function createTeam() {
 	showError.value = false
 	isSubmitting.value = true
 
-	showToast(`Equipe "${teamName.value}" criada com sucesso!`)
+	try {
+		const created = await createTeamMutation.mutateAsync({
+			name: teamName.value.trim(),
+			description: teamDescription.value.trim() || undefined,
+		})
 
-	setTimeout(() => {
-		isSubmitting.value = false
+		for (const member of selectedMembers.value) {
+			if (created.id && member.username) {
+				try {
+					await addMemberMutation.mutateAsync({
+						teamId: created.id,
+						username: member.username,
+					})
+				} catch (e) {
+					console.error('Error adding member to team:', e)
+				}
+			}
+		}
+
+		showToast(`Equipe "${teamName.value}" criada com sucesso!`)
 		router.push({name: 'teams.index'})
-	}, 600)
+	} catch (e) {
+		showToast('Erro ao criar equipe')
+	} finally {
+		isSubmitting.value = false
+	}
 }
 </script>
 

@@ -151,9 +151,11 @@
 import {computed, ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {useProjects} from '@/composables/useProjects'
+import {useCreateProjectMutation} from '@/client/queries/projects'
 
 const router = useRouter()
 const projectList = useProjects()
+const createProjectMutation = useCreateProjectMutation()
 
 const projectTitle = ref('')
 const projectDescription = ref('')
@@ -173,13 +175,7 @@ function showToast(msg: string) {
 	}, 3000)
 }
 
-const existingProjects = computed(() => {
-	return projectList.projectsArray || [
-		{id: 1, title: 'Engenharia Core'},
-		{id: 2, title: 'Design System'},
-		{id: 3, title: 'Marketing Q4'},
-	]
-})
+const existingProjects = computed(() => projectList.projectsArray ?? [])
 
 function cancel() {
 	router.push({name: 'projects.index'})
@@ -193,12 +189,20 @@ async function createProject() {
 	showError.value = false
 	isSubmitting.value = true
 
-	showToast(`Projeto "${projectTitle.value}" criado com sucesso!`)
-
-	setTimeout(() => {
+	try {
+		const created = await createProjectMutation.mutateAsync({
+			title: projectTitle.value.trim(),
+			description: projectDescription.value.trim() || undefined,
+			parent_project_id: parentProjectId.value || 0,
+			hex_color: selectedColor.value.replace('#', '') || undefined,
+		})
+		showToast(`Projeto "${projectTitle.value}" criado com sucesso!`)
+		router.push({name: 'project.view', params: {id: created.id}})
+	} catch (e) {
+		showToast('Erro ao criar projeto')
+	} finally {
 		isSubmitting.value = false
-		router.push({name: 'projects.index'})
-	}, 600)
+	}
 }
 </script>
 
