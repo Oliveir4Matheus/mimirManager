@@ -550,6 +550,14 @@ async function updateSettings() {
 	}
 }
 
+.general-settings {
+	background: var(--bg-card);
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	box-shadow: var(--shadow-card);
+	overflow: hidden;
+}
+
 .section-block + .section-block {
 	margin-block-start: 1.5rem;
 }
@@ -557,11 +565,65 @@ async function updateSettings() {
 .field-group {
 	display: grid;
 	grid-template-columns: 1fr;
+	gap: 16px;
+}
+
+:deep(.field) {
+	margin-bottom: 0;
+
+	.label {
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--text-primary);
+	}
+
+	.help {
+		font-size: 12px;
+		color: var(--text-secondary);
+	}
+}
+
+:deep(input[type="text"]),
+:deep(input[type="time"]),
+:deep(input[type="number"]),
+:deep(select) {
+	background: var(--bg-input);
+	border: 1px solid var(--border-color);
+	color: var(--text-primary);
+	border-radius: 6px;
+	font-size: 13px;
+	transition: border-color 0.15s ease, background 0.15s ease;
+
+	&:hover {
+		background: var(--bg-hover);
+	}
+
+	&:focus {
+		border-color: var(--border-focus);
+		outline: none;
+	}
 }
 
 .sticky-save {
 	position: sticky;
 	inset-block-end: 0;
-	padding: .25rem 1rem 1rem;
+	padding: 1rem 0;
+	background: var(--bg-app);
+	z-index: 10;
+
+	:deep(.button) {
+		background: var(--accent-base);
+		color: #ffffff;
+		border: none;
+		border-radius: 6px;
+		font-weight: 600;
+		font-size: 13px;
+		height: 38px;
+		transition: background 0.15s ease;
+
+		&:hover {
+			background: var(--accent-hover);
+		}
+	}
 }
 </style>
