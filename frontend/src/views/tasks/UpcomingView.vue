@@ -1,6 +1,5 @@
 <template>
 	<div class="upcoming-page">
-
 		<!-- Content Area -->
 		<main class="content-area">
 			<div class="upcoming-wrapper">
@@ -10,19 +9,26 @@
 						{{ titleText }}
 					</h1>
 					<div class="view-controls">
-						<button
-							type="button"
-							class="btn-secondary"
-							@click="selectDateRange"
+						<DatepickerWithRange
+							:model-value="{dateFrom: fromDate, dateTo: toDate}"
+							@update:model-value="setDateRange"
 						>
-							Select a date range
-						</button>
+							<template #trigger="{toggle}">
+								<button
+									type="button"
+									class="btn-secondary"
+									@click.prevent.stop="toggle()"
+								>
+									Select a date range
+								</button>
+							</template>
+						</DatepickerWithRange>
 						<div class="checkbox-group">
 							<label class="checkbox-label">
 								<input
 									v-model="showTasksWithoutDate"
 									type="checkbox"
-									@change="showToast('Filtro: Tarefas sem data atualizado')"
+									@change="onFilterChange"
 								>
 								<span>Show tasks without date</span>
 							</label>
@@ -30,7 +36,7 @@
 								<input
 									v-model="showOverdueTasks"
 									type="checkbox"
-									@change="showToast('Filtro: Tarefas atrasadas atualizado')"
+									@change="onFilterChange"
 								>
 								<span>Show overdue tasks</span>
 							</label>
@@ -40,7 +46,7 @@
 
 				<!-- Table Container -->
 				<div
-					v-if="filteredTasks.length > 0"
+					v-if="tasks && tasks.length > 0"
 					class="table-container"
 				>
 					<!-- Header Row -->
@@ -56,10 +62,10 @@
 
 					<!-- Task Rows -->
 					<div
-						v-for="task in filteredTasks"
+						v-for="task in tasks"
 						:key="task.id"
 						class="grid-row"
-						:class="{completed: task.completed}"
+						:class="{completed: task.done}"
 						@click="onRowClick(task, $event)"
 					>
 						<!-- Checkbox -->
@@ -67,23 +73,24 @@
 							<input
 								type="checkbox"
 								class="task-checkbox"
-								:checked="task.completed"
+								:checked="task.done"
 								:aria-label="'Concluir tarefa: ' + task.title"
 								@click.stop
-								@change="toggleComplete(task.id)"
+								@change="toggleComplete(task)"
 							>
 						</div>
 
 						<!-- Task Title & Priority -->
 						<div class="cell-title">
 							<span
+								v-if="getPriorityName(task.priority) !== 'none'"
 								class="priority-icon"
-								:class="'priority-' + task.priority"
-								:title="'Prioridade: ' + task.priority"
+								:class="'priority-' + getPriorityName(task.priority)"
+								:title="'Prioridade: ' + getPriorityName(task.priority)"
 							>
 								<!-- Urgent -->
 								<svg
-									v-if="task.priority === 'urgent'"
+									v-if="getPriorityName(task.priority) === 'urgent'"
 									viewBox="0 0 24 24"
 									fill="currentColor"
 								>
@@ -111,7 +118,7 @@
 								</svg>
 								<!-- High -->
 								<svg
-									v-else-if="task.priority === 'high'"
+									v-else-if="getPriorityName(task.priority) === 'high'"
 									viewBox="0 0 24 24"
 									fill="currentColor"
 								>
@@ -132,7 +139,7 @@
 								</svg>
 								<!-- Medium -->
 								<svg
-									v-else-if="task.priority === 'medium'"
+									v-else-if="getPriorityName(task.priority) === 'medium'"
 									viewBox="0 0 24 24"
 									fill="currentColor"
 								>
@@ -173,25 +180,25 @@
 							<span class="project-pill">
 								<span
 									class="project-dot"
-									:style="{backgroundColor: task.projectColor}"
+									:style="{backgroundColor: getProjectColor(task.project_id)}"
 								/>
-								{{ task.project }}
+								{{ getProjectTitle(task.project_id) }}
 							</span>
 						</div>
 
 						<!-- Due Date -->
 						<div class="cell-date">
-							{{ task.dueDate || '-' }}
+							{{ task.due_date ? formatDate(task.due_date, 'll') : '-' }}
 						</div>
 
 						<!-- Assignee -->
 						<div class="cell-assignee">
 							<div
-								v-if="task.assignee"
+								v-if="task.assignees && task.assignees.length > 0"
 								class="table-avatar"
-								:title="task.assignee"
+								:title="task.assignees[0].name"
 							>
-								{{ task.assignee.substring(0, 2).toUpperCase() }}
+								{{ (task.assignees[0].name || 'U').substring(0, 2).toUpperCase() }}
 							</div>
 							<span
 								v-else
@@ -202,7 +209,7 @@
 						<!-- Subtasks -->
 						<div class="cell-subtasks">
 							<span
-								v-if="task.subtasks"
+								v-if="getSubtasksCount(task)"
 								class="subtask-badge"
 							>
 								<svg
@@ -216,7 +223,7 @@
 									<polyline points="9 11 12 14 22 4" />
 									<path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
 								</svg>
-								{{ task.subtasks }}
+								{{ getSubtasksCount(task) }}
 							</span>
 							<span
 								v-else
@@ -229,8 +236,8 @@
 							<button
 								type="button"
 								class="row-action-btn"
-								title="Ações"
-								@click.stop="showToast('Menu de opções para: ' + task.title)"
+								title="Abrir detalhes"
+								@click.stop="openTaskDetail(task.id)"
 							>
 								•••
 							</button>
@@ -275,48 +282,68 @@
 			</svg>
 			<span>{{ toastMessage }}</span>
 		</div>
-
-		<!-- Dev Controls -->
-		<div class="dev-controls">
-			<button
-				type="button"
-				class="dev-btn"
-				@click="toggleEmptyMode"
-			>
-				Alternar Vazio / Preenchido
-			</button>
-		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, ref, watch} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
 import {useAuthStore} from '@/stores/auth'
-import Icon from '@/components/misc/Icon'
+import {useProjects} from '@/composables/useProjects'
+import {useTasks} from '@/composables/useTasks'
+import {useUpdateTaskMutation} from '@/client/queries/taskMutations'
+import DatepickerWithRange from '@/components/date/DatepickerWithRange.vue'
+import {formatDate} from '@/helpers/time/formatDate'
+import type {TaskFilterParams, TaskResponse, TaskScope} from '@/client/queries/tasks'
 
-export interface UpcomingTask {
-	id: number
-	title: string
-	project: string
-	projectColor: string
-	priority: 'urgent' | 'high' | 'medium' | 'low'
-	dueDate: string
-	assignee: string
-	subtasks: string
-	completed: boolean
-}
-
-const authStore = useAuthStore()
-
-const userInitials = computed(() => {
-	const name = authStore.userDisplayName || 'Matheus'
-	return name.substring(0, 2).toUpperCase()
+const props = withDefaults(defineProps<{
+	dateFrom?: Date | string
+	dateTo?: Date | string
+	showNulls?: boolean
+	showOverdue?: boolean
+}>(), {
+	dateFrom: undefined,
+	dateTo: undefined,
+	showNulls: false,
+	showOverdue: false,
 })
 
-const titleText = ref('Tasks from November 6, 2026 until November 13, 2026')
-const showTasksWithoutDate = ref(false)
-const showOverdueTasks = ref(false)
-const isSimulatedEmpty = ref(false)
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+const projectList = useProjects()
+const updateTaskMutation = useUpdateTaskMutation(true)
+
+const showTasksWithoutDate = ref(props.showNulls)
+const showOverdueTasks = ref(props.showOverdue)
+
+watch(() => props.showNulls, v => { showTasksWithoutDate.value = v })
+watch(() => props.showOverdue, v => { showOverdueTasks.value = v })
+
+const fromDate = computed(() => {
+	if (props.dateFrom) {
+		return props.dateFrom instanceof Date ? props.dateFrom : new Date(props.dateFrom)
+	}
+	const d = new Date()
+	d.setHours(0, 0, 0, 0)
+	return d
+})
+
+const toDate = computed(() => {
+	if (props.dateTo) {
+		return props.dateTo instanceof Date ? props.dateTo : new Date(props.dateTo)
+	}
+	const d = new Date()
+	d.setDate(d.getDate() + 7)
+	d.setHours(23, 59, 59, 999)
+	return d
+})
+
+const titleText = computed(() => {
+	const fromFormatted = formatDate(fromDate.value, 'LL')
+	const toFormatted = formatDate(toDate.value, 'LL')
+	return `Tasks from ${fromFormatted} until ${toFormatted}`
+})
 
 const toastMessage = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -329,84 +356,112 @@ function showToast(msg: string) {
 	}, 3000)
 }
 
-const initialTasks: UpcomingTask[] = [
-	{
-		id: 1,
-		title: 'Validar requisitos',
-		project: 'Inbox',
-		projectColor: '#9ca3af',
-		priority: 'medium',
-		dueDate: 'Nov 8, 2026',
-		assignee: 'Matheus Oliveira',
-		subtasks: '1/3',
-		completed: false,
-	},
-	{
-		id: 2,
-		title: 'Preparar entrega da equipe',
-		project: 'Inbox',
-		projectColor: '#9ca3af',
-		priority: 'high',
-		dueDate: 'Nov 10, 2026',
-		assignee: 'Matheus Oliveira',
-		subtasks: '2/4',
-		completed: false,
-	},
-	{
-		id: 3,
-		title: 'Revisar proposta de design',
-		project: 'Inbox',
-		projectColor: '#9ca3af',
-		priority: 'urgent',
-		dueDate: 'Nov 12, 2026',
-		assignee: 'Matheus Oliveira',
-		subtasks: '0/2',
-		completed: false,
-	},
-	{
-		id: 4,
-		title: 'Planejar novo projeto',
-		project: 'Inbox',
-		projectColor: '#9ca3af',
-		priority: 'low',
-		dueDate: 'Nov 13, 2026',
-		assignee: 'Matheus Oliveira',
-		subtasks: '3/3',
-		completed: false,
-	},
-]
+const taskScope = computed<TaskScope>(() => {
+	const fromIso = fromDate.value.toISOString()
+	const toIso = toDate.value.toISOString()
 
-const tasks = ref<UpcomingTask[]>(JSON.parse(JSON.stringify(initialTasks)))
+	let filter = 'done = false'
+	filter += ` && due_date < '${toIso}'`
+	if (!showOverdueTasks.value) {
+		filter += ` && due_date >= '${fromIso}'`
+	}
 
-const filteredTasks = computed(() => {
-	if (isSimulatedEmpty.value) return []
-	return tasks.value
+	const params: TaskFilterParams = {
+		sort_by: ['due_date', 'id'],
+		order_by: ['asc', 'desc'],
+		filter,
+		filter_include_nulls: showTasksWithoutDate.value,
+		expand: ['subtasks'],
+	}
+
+	return {
+		project: null,
+		params,
+	}
 })
 
-function selectDateRange() {
-	showToast('Abrindo seletor de intervalo de datas...')
+const taskQuery = useTasks(taskScope, {
+	enabled: () => authStore.authenticated,
+})
+
+const tasks = taskQuery.tasks
+
+function getPriorityName(priority?: number): 'urgent' | 'high' | 'medium' | 'low' | 'none' {
+	if (!priority) return 'none'
+	if (priority >= 4) return 'urgent'
+	if (priority === 3) return 'high'
+	if (priority === 2) return 'medium'
+	return 'low'
 }
 
-function toggleComplete(id: number) {
-	const task = tasks.value.find(t => t.id === id)
-	if (task) {
-		task.completed = !task.completed
-		showToast(task.completed ? 'Tarefa concluída' : 'Tarefa reaberta')
+function getProjectColor(projectId?: number): string {
+	if (!projectId) return '#9ca3af'
+	const color = projectList.projects[projectId]?.hex_color
+	return color ? '#' + color : '#9ca3af'
+}
+
+function getProjectTitle(projectId?: number): string {
+	if (!projectId) return 'Inbox'
+	return projectList.projects[projectId]?.title || 'Inbox'
+}
+
+function getSubtasksCount(task: TaskResponse): string | null {
+	const subs = task.related_tasks?.subtask
+	if (!subs || subs.length === 0) return null
+	const doneCount = subs.filter(s => s.done).length
+	return `${doneCount}/${subs.length}`
+}
+
+function setDateRange(dates: {dateFrom: Date | string | null, dateTo: Date | string | null}) {
+	const from = dates.dateFrom ?? fromDate.value
+	const to = dates.dateTo ?? toDate.value
+	router.push({
+		name: route.name as string,
+		query: {
+			...route.query,
+			from: from instanceof Date ? from.toISOString() : from,
+			to: to instanceof Date ? to.toISOString() : to,
+		},
+	})
+}
+
+function onFilterChange() {
+	router.push({
+		name: route.name as string,
+		query: {
+			...route.query,
+			showNulls: showTasksWithoutDate.value ? 'true' : 'false',
+			showOverdue: showOverdueTasks.value ? 'true' : 'false',
+		},
+	})
+}
+
+async function toggleComplete(task: TaskResponse) {
+	try {
+		await updateTaskMutation.mutateAsync({
+			...task,
+			done: !task.done,
+		})
+		showToast(task.done ? 'Tarefa marcada como pendente' : 'Tarefa concluída')
+	} catch (e) {
+		showToast('Erro ao atualizar tarefa')
 	}
 }
 
-function onRowClick(task: UpcomingTask, event: MouseEvent) {
-	const target = event.target as HTMLElement
-	if (target.closest('.task-checkbox') || target.closest('.row-action-btn')) return
-	showToast(`Abrindo detalhes: ${task.title}`)
+function openTaskDetail(id: number) {
+	router.push({
+		name: 'task.detail',
+		params: { id },
+		state: { backdropView: router.currentRoute.value.fullPath },
+	})
 }
 
-function toggleEmptyMode() {
-	isSimulatedEmpty.value = !isSimulatedEmpty.value
-	showToast(isSimulatedEmpty.value ? 'Visualizando Estado Vazio' : 'Visualizando Lista Preenchida')
+function onRowClick(task: TaskResponse, event: MouseEvent) {
+	const target = event.target as HTMLElement
+	if (target.closest('.cell-checkbox') || target.closest('.cell-actions')) return
+	openTaskDetail(task.id)
 }
 </script>
-
 <style scoped lang="scss">
 .upcoming-page {
 	/* Design Tokens - Light Theme */

@@ -1,6 +1,5 @@
 <template>
 	<div class="overview-page">
-
 		<!-- Content Area -->
 		<main class="content-area">
 			<div class="overview-wrapper">
@@ -22,42 +21,12 @@
 							stroke-linecap="round"
 							stroke-linejoin="round"
 						>
-							<line
-								x1="8"
-								y1="6"
-								x2="21"
-								y2="6"
-							/>
-							<line
-								x1="8"
-								y1="12"
-								x2="21"
-								y2="12"
-							/>
-							<line
-								x1="8"
-								y1="18"
-								x2="21"
-								y2="18"
-							/>
-							<line
-								x1="3"
-								y1="6"
-								x2="3.01"
-								y2="6"
-							/>
-							<line
-								x1="3"
-								y1="12"
-								x2="3.01"
-								y2="12"
-							/>
-							<line
-								x1="3"
-								y1="18"
-								x2="3.01"
-								y2="18"
-							/>
+							<line x1="8" y1="6" x2="21" y2="6" />
+							<line x1="8" y1="12" x2="21" y2="12" />
+							<line x1="8" y1="18" x2="21" y2="18" />
+							<line x1="3" y1="6" x2="3.01" y2="6" />
+							<line x1="3" y1="12" x2="3.01" y2="12" />
+							<line x1="3" y1="18" x2="3.01" y2="18" />
 						</svg>
 					</div>
 					<input
@@ -73,6 +42,7 @@
 						type="button"
 						class="add-btn"
 						aria-label="Adicionar tarefa"
+						:disabled="createTaskMutation.isPending.value"
 						@click="createTask"
 					>
 						<svg
@@ -85,40 +55,33 @@
 							stroke-linecap="round"
 							stroke-linejoin="round"
 						>
-							<line
-								x1="12"
-								y1="5"
-								x2="12"
-								y2="19"
-							/>
-							<line
-								x1="5"
-								y1="12"
-								x2="19"
-								y2="12"
-							/>
+							<line x1="12" y1="5" x2="12" y2="19" />
+							<line x1="5" y1="12" x2="19" y2="12" />
 						</svg>
 						ADD
 					</button>
 				</div>
 
 				<!-- Last Viewed Section -->
-				<section class="overview-section">
+				<section
+					v-if="projectHistory.length > 0"
+					class="overview-section"
+				>
 					<h2 class="section-title">
 						Last viewed
 					</h2>
 					<div class="last-viewed-grid">
 						<div
-							v-for="card in lastViewedCards"
-							:key="card.id"
+							v-for="proj in projectHistory"
+							:key="proj.id"
 							class="last-viewed-card"
 							tabindex="0"
-							:aria-label="'Abrir ' + card.title"
-							@click="openLastViewed(card)"
-							@keydown.enter="openLastViewed(card)"
+							:aria-label="'Abrir ' + getProjectTitle(proj)"
+							@click="openProject(proj)"
+							@keydown.enter="openProject(proj)"
 						>
 							<div class="last-viewed-title">
-								{{ card.title }}
+								{{ getProjectTitle(proj) }}
 							</div>
 						</div>
 					</div>
@@ -139,7 +102,7 @@
 							v-for="task in tasks"
 							:key="task.id"
 							class="task-row"
-							:class="{completed: task.completed}"
+							:class="{completed: task.done}"
 							@click="onTaskRowClick(task, $event)"
 						>
 							<!-- Checkbox -->
@@ -147,10 +110,10 @@
 								<input
 									type="checkbox"
 									class="task-checkbox"
-									:checked="task.completed"
+									:checked="task.done"
 									:aria-label="'Concluir tarefa: ' + task.title"
 									@click.stop
-									@change="toggleComplete(task.id)"
+									@change="toggleComplete(task)"
 								>
 							</div>
 
@@ -159,9 +122,9 @@
 								<span class="project-pill">
 									<span
 										class="project-dot"
-										:style="{backgroundColor: task.projectColor}"
+										:style="{backgroundColor: getProjectColor(task.project_id)}"
 									/>
-									{{ task.project }}
+									{{ getProjectName(task.project_id) }}
 								</span>
 							</div>
 
@@ -169,12 +132,12 @@
 							<div class="cell-title">
 								<span
 									class="priority-icon"
-									:class="'priority-' + task.priority"
-									:title="'Prioridade: ' + task.priority"
+									:class="'priority-' + getPriorityName(task.priority)"
+									:title="'Prioridade: ' + getPriorityName(task.priority)"
 								>
 									<!-- Urgent: Triangle -->
 									<svg
-										v-if="task.priority === 'urgent'"
+										v-if="task.priority === 5 || task.priority === 4"
 										viewBox="0 0 24 24"
 										fill="currentColor"
 									>
@@ -202,28 +165,16 @@
 									</svg>
 									<!-- High: Tall double bars -->
 									<svg
-										v-else-if="task.priority === 'high'"
+										v-else-if="task.priority === 3"
 										viewBox="0 0 24 24"
 										fill="currentColor"
 									>
-										<rect
-											x="6"
-											y="10"
-											width="4"
-											height="10"
-											rx="1"
-										/>
-										<rect
-											x="14"
-											y="4"
-											width="4"
-											height="16"
-											rx="1"
-										/>
+										<rect x="6" y="10" width="4" height="10" rx="1" />
+										<rect x="14" y="4" width="4" height="16" rx="1" />
 									</svg>
 									<!-- Medium: Plus / Bar -->
 									<svg
-										v-else-if="task.priority === 'medium'"
+										v-else-if="task.priority === 2"
 										viewBox="0 0 24 24"
 										fill="currentColor"
 									>
@@ -240,20 +191,8 @@
 										viewBox="0 0 24 24"
 										fill="currentColor"
 									>
-										<rect
-											x="6"
-											y="14"
-											width="4"
-											height="6"
-											rx="1"
-										/>
-										<rect
-											x="14"
-											y="14"
-											width="4"
-											height="6"
-											rx="1"
-										/>
+										<rect x="6" y="14" width="4" height="6" rx="1" />
+										<rect x="14" y="14" width="4" height="6" rx="1" />
 									</svg>
 								</span>
 								<span class="task-title-text">{{ task.title }}</span>
@@ -263,7 +202,7 @@
 
 					<!-- Empty State View (Llama Mascot) -->
 					<div
-						v-else
+						v-else-if="!taskQuery.isFetching.value"
 						class="empty-state-view"
 					>
 						<div class="empty-icon-circle">
@@ -299,24 +238,6 @@
 			</svg>
 			<span>{{ toastMessage }}</span>
 		</div>
-
-		<!-- Dev Controls (Conforme item 5.1/7 dos Critérios de Aceitação da Spec) -->
-		<div class="dev-controls">
-			<button
-				type="button"
-				class="dev-btn"
-				@click="clearAllTasks"
-			>
-				Simular Estado Vazio
-			</button>
-			<button
-				type="button"
-				class="dev-btn"
-				@click="restoreData"
-			>
-				Restaurar Dados
-			</button>
-		</div>
 	</div>
 </template>
 
@@ -324,29 +245,25 @@
 import {computed, ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {useAuthStore} from '@/stores/auth'
+import {useProjects} from '@/composables/useProjects'
+import {useTasks} from '@/composables/useTasks'
+import {useCreateTaskMutation, useUpdateTaskMutation} from '@/client/queries/taskMutations'
 import {useDaytimeSalutation} from '@/composables/useDaytimeSalutation'
-import Icon from '@/components/misc/Icon'
-
-export interface OverviewTask {
-	id: number
-	title: string
-	project: string
-	projectColor: string
-	priority: 'urgent' | 'high' | 'medium' | 'low'
-	completed: boolean
-}
+import {getHistory} from '@/modules/projectHistory'
+import {getProjectTitle} from '@/helpers/getProjectTitle'
+import type {TaskResponse, TaskScope} from '@/client/queries/tasks'
+import type {ProjectResponse} from '@/client/queries/projects'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const projectList = useProjects()
 const salutationComposable = useDaytimeSalutation()
+
+const createTaskMutation = useCreateTaskMutation()
+const updateTaskMutation = useUpdateTaskMutation(true)
 
 const taskInputRef = ref<HTMLInputElement | null>(null)
 const newTaskTitle = ref('')
-
-const userInitials = computed(() => {
-	const name = authStore.userDisplayName || 'Matheus'
-	return name.substring(0, 2).toUpperCase()
-})
 
 const greetingText = computed(() => {
 	const user = authStore.userDisplayName || 'Matheus'
@@ -356,46 +273,31 @@ const greetingText = computed(() => {
 	return `One more thing, ${user}?`
 })
 
-const lastViewedCards = ref([
-	{id: 'inbox', title: 'Inbox', route: '/inbox'},
-])
+// Query real pending tasks across user projects
+const taskScope = computed<TaskScope>(() => ({
+	project: null,
+	params: {
+		filter: 'done = false',
+		sort_by: ['due_date', 'id'],
+		order_by: ['asc', 'desc'],
+		expand: ['subtasks'],
+	},
+}))
 
-const initialTasks: OverviewTask[] = [
-	{
-		id: 1,
-		title: 'Validar requisitos',
-		project: 'Inbox',
-		projectColor: '#9ca3af',
-		priority: 'medium',
-		completed: false,
-	},
-	{
-		id: 2,
-		title: 'Preparar entrega da equipe',
-		project: 'Inbox',
-		projectColor: '#9ca3af',
-		priority: 'high',
-		completed: false,
-	},
-	{
-		id: 3,
-		title: 'Revisar proposta de design',
-		project: 'Inbox',
-		projectColor: '#9ca3af',
-		priority: 'urgent',
-		completed: false,
-	},
-	{
-		id: 4,
-		title: 'Planejar novo projeto',
-		project: 'Inbox',
-		projectColor: '#9ca3af',
-		priority: 'low',
-		completed: false,
-	},
-]
+const taskQuery = useTasks(taskScope, {
+	enabled: () => authStore.authenticated,
+})
 
-const tasks = ref<OverviewTask[]>(JSON.parse(JSON.stringify(initialTasks)))
+const tasks = computed(() => taskQuery.tasks.value ?? [])
+
+// Real project history for "Last viewed"
+const projectHistory = computed(() => {
+	if (!authStore.authenticated) return []
+	return getHistory()
+		.map(l => projectList.projects[l.id])
+		.filter((l): l is ProjectResponse => Boolean(l))
+		.slice(0, 4)
+})
 
 const toastMessage = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -408,196 +310,82 @@ function showToast(msg: string) {
 	}, 3000)
 }
 
-function createTask() {
+function getProjectName(projectId: number): string {
+	const p = projectList.projects[projectId]
+	return p ? getProjectTitle(p) : 'Inbox'
+}
+
+function getProjectColor(projectId: number): string {
+	const p = projectList.projects[projectId]
+	return p?.hex_color ? `#${p.hex_color}` : '#9ca3af'
+}
+
+function getPriorityName(priority: number): 'urgent' | 'high' | 'medium' | 'low' {
+	if (priority >= 4) return 'urgent'
+	if (priority === 3) return 'high'
+	if (priority === 2) return 'medium'
+	return 'low'
+}
+
+async function createTask() {
 	const title = newTaskTitle.value.trim()
 	if (!title) return
 
-	tasks.value.unshift({
-		id: Date.now(),
-		title,
-		project: 'Inbox',
-		projectColor: '#9ca3af',
-		priority: 'medium',
-		completed: false,
-	})
-	newTaskTitle.value = ''
-	showToast('Tarefa criada com sucesso')
-}
+	const defaultProjectId = authStore.settings?.default_project_id || 
+		projectList.projectsArray[0]?.id || 
+		1
 
-function toggleComplete(id: number) {
-	const task = tasks.value.find(t => t.id === id)
-	if (task) {
-		task.completed = !task.completed
-		showToast(task.completed ? 'Tarefa concluída' : 'Tarefa reaberta')
+	try {
+		await createTaskMutation.mutateAsync({
+			title,
+			project_id: defaultProjectId,
+		})
+		newTaskTitle.value = ''
+		showToast('Tarefa criada com sucesso')
+	} catch (e) {
+		showToast('Erro ao criar tarefa')
 	}
 }
 
-function onTaskRowClick(task: OverviewTask, event: MouseEvent) {
+async function toggleComplete(task: TaskResponse) {
+	try {
+		await updateTaskMutation.mutateAsync({
+			...task,
+			done: !task.done,
+		})
+		showToast(!task.done ? 'Tarefa concluída' : 'Tarefa reaberta')
+	} catch (e) {
+		showToast('Erro ao atualizar tarefa')
+	}
+}
+
+function onTaskRowClick(task: TaskResponse, event: MouseEvent) {
 	const target = event.target as HTMLElement
 	if (target.closest('.task-checkbox')) return
-	showToast(`Abrindo detalhes: ${task.title}`)
+
+	// Open task modal in-place preserving background view
+	router.push({
+		name: 'task.detail',
+		params: {id: task.id},
+		state: {backdropView: router.currentRoute.value.fullPath},
+	})
 }
 
-function openLastViewed(card: {id: string; title: string; route: string}) {
-	showToast(`Navegando para ${card.title}...`)
-	router.push(card.route)
-}
-
-function clearAllTasks() {
-	tasks.value = []
-	showToast('Lista esvaziada')
-}
-
-function restoreData() {
-	tasks.value = JSON.parse(JSON.stringify(initialTasks))
-	showToast('Dados restaurados')
+function openProject(proj: ProjectResponse) {
+	const viewId = proj.views?.[0]?.id || 1
+	router.push({
+		name: 'project.view',
+		params: {
+			projectId: proj.id,
+			viewId,
+		},
+	})
 }
 </script>
 
 <style scoped lang="scss">
 .overview-page {
-	/* Design Tokens - Light Theme */
-	--font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-	--bg-app: #f9f9f9;
-	--bg-sidebar: #fcfcfc;
-	--bg-card: #ffffff;
-	--bg-hover: #f4f4f5;
-	--bg-header-row: #fafafa;
-	--bg-modal: #ffffff;
-
-	--text-primary: #111111;
-	--text-secondary: #6b6b6b;
-	--text-tertiary: #9ca3af;
-
-	--border-color: #e5e5e5;
-	--border-subtle: #f0f0f0;
-	--border-focus: #5e6ad2;
-
-	--accent-base: #5e6ad2;
-	--accent-hover: #4a55b5;
-
-	--priority-urgent: #e5484d;
-	--priority-high: #f5a623;
-	--priority-medium: #5e6ad2;
-	--priority-low: #9ca3af;
-
-	--shadow-card: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04);
-	--shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-	font-family: var(--font-family);
-	background-color: var(--bg-app);
-	color: var(--text-primary);
-	min-height: 100vh;
-	display: flex;
-	flex-direction: column;
 	width: 100%;
-}
-
-:global(html.dark) .overview-page {
-	/* Design Tokens - Dark Theme */
-	--bg-app: #0f0f0f;
-	--bg-sidebar: #0f0f0f;
-	--bg-card: #1c1c1c;
-	--bg-hover: #262a36;
-	--bg-header-row: #181b22;
-	--bg-modal: #1c1c1c;
-
-	--text-primary: #e5e5e5;
-	--text-secondary: #8a8a8a;
-	--text-tertiary: #555555;
-
-	--border-color: #333333;
-	--border-subtle: #222222;
-}
-
-/* Header */
-.top-header {
-	height: 48px;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 0 24px;
-	border-bottom: 1px solid var(--border-color);
-	background: var(--bg-app);
-}
-
-.breadcrumb {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	font-size: 14px;
-	font-weight: 600;
-	color: var(--text-primary);
-
-	.breadcrumb-item {
-		color: var(--text-secondary);
-	}
-
-	.breadcrumb-separator {
-		color: var(--text-tertiary);
-		font-weight: 400;
-	}
-
-	.breadcrumb-current {
-		color: var(--text-primary);
-	}
-}
-
-.header-actions {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-}
-
-.icon-btn {
-	background: transparent;
-	border: none;
-	cursor: pointer;
-	color: var(--text-secondary);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 6px;
-	border-radius: 6px;
-	transition: background 0.15s, color 0.15s;
-
-	&:hover {
-		background: var(--bg-hover);
-		color: var(--text-primary);
-	}
-}
-
-.user-profile {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	font-size: 13px;
-	font-weight: 500;
-	cursor: pointer;
-	padding: 2px 6px;
-	border-radius: 6px;
-	transition: background 0.15s;
-
-	&:hover {
-		background: var(--bg-hover);
-	}
-
-	.avatar {
-		width: 24px;
-		height: 24px;
-		border-radius: 50%;
-		background: #e0e7ff;
-		color: var(--accent-base);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 11px;
-		font-weight: 600;
-	}
-
-	.username {
-		color: var(--text-primary);
-	}
 }
 
 /* Content Area */
@@ -752,7 +540,7 @@ function restoreData() {
 
 .task-row {
 	display: grid;
-	grid-template-columns: 32px 100px 1fr;
+	grid-template-columns: 32px 120px 1fr;
 	align-items: center;
 	padding: 10px 16px;
 	border-bottom: 1px solid var(--border-subtle);
@@ -957,38 +745,6 @@ function restoreData() {
 	to {
 		opacity: 1;
 		transform: translate(-50%, 0);
-	}
-}
-
-/* Dev Controls */
-.dev-controls {
-	position: fixed;
-	bottom: 16px;
-	right: 16px;
-	background: var(--bg-card);
-	padding: 10px 12px;
-	border-radius: 8px;
-	border: 1px solid var(--border-color);
-	box-shadow: var(--shadow-dropdown);
-	display: flex;
-	gap: 8px;
-	z-index: 100;
-}
-
-.dev-btn {
-	font-size: 12px;
-	padding: 4px 8px;
-	cursor: pointer;
-	background: var(--bg-hover);
-	color: var(--text-secondary);
-	border: 1px solid var(--border-color);
-	border-radius: 4px;
-	transition: all 0.15s;
-
-	&:hover {
-		background: var(--accent-base);
-		color: #ffffff;
-		border-color: var(--accent-base);
 	}
 }
 </style>

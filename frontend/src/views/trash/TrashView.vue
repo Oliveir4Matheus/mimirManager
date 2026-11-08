@@ -1,6 +1,5 @@
 <template>
 	<div class="trash-page">
-
 		<!-- Content Area -->
 		<main class="content-area">
 			<div class="trash-wrapper">
@@ -12,6 +11,7 @@
 					<button
 						type="button"
 						class="btn-danger"
+						:disabled="currentItems.length === 0"
 						@click="emptyTrash"
 					>
 						<svg
@@ -66,7 +66,6 @@
 						class="table-header-row"
 						:class="{'projects-mode': activeTab === 'projects'}"
 					>
-						<div><!-- Checkbox column --></div>
 						<div>{{ activeTab === 'tasks' ? 'Tarefa' : 'Projeto' }}</div>
 						<div v-if="activeTab === 'tasks'">
 							Projeto
@@ -82,15 +81,6 @@
 						class="grid-row"
 						:class="{'projects-mode': activeTab === 'projects'}"
 					>
-						<!-- Checkbox -->
-						<div class="cell-checkbox">
-							<input
-								type="checkbox"
-								class="task-checkbox"
-								:aria-label="'Selecionar ' + item.title"
-							>
-						</div>
-
 						<!-- Title -->
 						<div class="cell-title">
 							{{ item.title }}
@@ -104,15 +94,15 @@
 							<span class="project-pill">
 								<span
 									class="project-dot"
-									:style="{backgroundColor: item.projectColor}"
+									:style="{backgroundColor: getProjectColor(item.projectId)}"
 								/>
-								{{ item.project }}
+								{{ getProjectTitle(item.projectId) }}
 							</span>
 						</div>
 
 						<!-- Deleted At -->
 						<div class="cell-date">
-							{{ item.deletedAt }}
+							{{ formatDateSince(item.deletedAt) }}
 						</div>
 
 						<!-- Row Actions -->
@@ -168,57 +158,47 @@
 			</svg>
 			<span>{{ toastMessage }}</span>
 		</div>
-
-		<!-- Dev Controls -->
-		<div class="dev-controls">
-			<button
-				type="button"
-				class="dev-btn"
-				@click="toggleEmptyMode"
-			>
-				Alternar Vazio / Preenchido
-			</button>
-			<button
-				type="button"
-				class="dev-btn"
-				@click="resetData"
-			>
-				Restaurar Dados
-			</button>
-		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
 import {computed, ref} from 'vue'
-import {useAuthStore} from '@/stores/auth'
-import Icon from '@/components/misc/Icon'
+import {useQuery} from '@tanstack/vue-query'
+import {useProjects} from '@/composables/useProjects'
+import {
+	trashedTasksQuery,
+	trashedProjectsQuery,
+	useRestoreTaskMutation,
+	useDeleteTaskPermanentlyMutation,
+	useEmptyTaskTrashMutation,
+	useRestoreProjectMutation,
+	useDeleteProjectPermanentlyMutation,
+	useEmptyProjectTrashMutation,
+} from '@/client/queries/trash'
+import {formatDateSince} from '@/helpers/time/formatDate'
 
-export interface TrashTask {
+export interface TrashDisplayItem {
 	id: number
 	title: string
-	project: string
-	projectColor: string
-	deletedAt: string
+	projectId?: number
+	deletedAt?: string | null
 }
-
-export interface TrashProject {
-	id: number
-	title: string
-	deletedAt: string
-	project?: string
-	projectColor?: string
-}
-
-const authStore = useAuthStore()
-
-const userInitials = computed(() => {
-	const name = authStore.userDisplayName || 'Matheus'
-	return name.substring(0, 2).toUpperCase()
-})
 
 const activeTab = ref<'tasks' | 'projects'>('tasks')
-const isSimulatedEmpty = ref(false)
+const currentPage = ref(1)
+
+const taskQuery = useQuery(computed(() => trashedTasksQuery(currentPage.value)))
+const projectQuery = useQuery(computed(() => trashedProjectsQuery(currentPage.value)))
+
+const restoreTaskMutation = useRestoreTaskMutation()
+const deleteTaskPermanentlyMutation = useDeleteTaskPermanentlyMutation()
+const emptyTaskTrashMutation = useEmptyTaskTrashMutation()
+
+const restoreProjectMutation = useRestoreProjectMutation()
+const deleteProjectPermanentlyMutation = useDeleteProjectPermanentlyMutation()
+const emptyProjectTrashMutation = useEmptyProjectTrashMutation()
+
+const projectList = useProjects()
 
 const toastMessage = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -231,67 +211,75 @@ function showToast(msg: string) {
 	}, 3000)
 }
 
-const initialTasks: TrashTask[] = [
-	{id: 1, title: 'Old bug report', project: 'Inbox', projectColor: '#9ca3af', deletedAt: '2 days ago'},
-	{id: 2, title: 'Deprecated documentation draft', project: 'Inbox', projectColor: '#9ca3af', deletedAt: '5 days ago'},
-	{id: 3, title: 'Temporary test task', project: 'Inbox', projectColor: '#9ca3af', deletedAt: '1 week ago'},
-]
-
-const initialProjects: TrashProject[] = [
-	{id: 101, title: 'Legacy Architecture 2025', deletedAt: '3 days ago'},
-	{id: 102, title: 'Scratch Experiments', deletedAt: '2 weeks ago'},
-]
-
-const tasks = ref<TrashTask[]>(JSON.parse(JSON.stringify(initialTasks)))
-const projects = ref<TrashProject[]>(JSON.parse(JSON.stringify(initialProjects)))
-
-const currentItems = computed(() => {
-	if (isSimulatedEmpty.value) return []
-	return activeTab.value === 'tasks' ? tasks.value : projects.value
+const currentItems = computed<TrashDisplayItem[]>(() => {
+	if (activeTab.value === 'tasks') {
+		const list = taskQuery.data.value?.items ?? []
+		return list.map(t => ({
+			id: t.id,
+			title: t.title,
+			projectId: t.project_id,
+			deletedAt: t.deleted_at,
+		}))
+	}
+	const list = projectQuery.data.value?.items ?? []
+	return list.map(p => ({
+		id: p.id,
+		title: p.title,
+		deletedAt: p.deleted_at,
+	}))
 })
 
-function restoreItem(id: number) {
-	if (activeTab.value === 'tasks') {
-		const item = tasks.value.find(t => t.id === id)
-		tasks.value = tasks.value.filter(t => t.id !== id)
-		showToast(`Tarefa "${item?.title}" restaurada com sucesso`)
-	} else {
-		const item = projects.value.find(p => p.id === id)
-		projects.value = projects.value.filter(p => p.id !== id)
-		showToast(`Projeto "${item?.title}" restaurado com sucesso`)
+function getProjectColor(projectId?: number): string {
+	if (!projectId) return '#9ca3af'
+	const color = projectList.projects[projectId]?.hex_color
+	return color ? '#' + color : '#9ca3af'
+}
+
+function getProjectTitle(projectId?: number): string {
+	if (!projectId) return 'Inbox'
+	return projectList.projects[projectId]?.title || 'Inbox'
+}
+
+async function restoreItem(id: number) {
+	try {
+		if (activeTab.value === 'tasks') {
+			await restoreTaskMutation.mutateAsync(id)
+			showToast('Tarefa restaurada com sucesso')
+		} else {
+			await restoreProjectMutation.mutateAsync(id)
+			showToast('Projeto restaurado com sucesso')
+		}
+	} catch (e) {
+		showToast('Erro ao restaurar item')
 	}
 }
 
-function deletePermanently(id: number) {
-	if (activeTab.value === 'tasks') {
-		tasks.value = tasks.value.filter(t => t.id !== id)
-		showToast('Tarefa excluída permanentemente')
-	} else {
-		projects.value = projects.value.filter(p => p.id !== id)
-		showToast('Projeto excluído permanentemente')
+async function deletePermanently(id: number) {
+	try {
+		if (activeTab.value === 'tasks') {
+			await deleteTaskPermanentlyMutation.mutateAsync(id)
+			showToast('Tarefa excluída permanentemente')
+		} else {
+			await deleteProjectPermanentlyMutation.mutateAsync(id)
+			showToast('Projeto excluído permanentemente')
+		}
+	} catch (e) {
+		showToast('Erro ao excluir item')
 	}
 }
 
-function emptyTrash() {
-	if (activeTab.value === 'tasks') {
-		tasks.value = []
-		showToast('Lixeira de tarefas esvaziada')
-	} else {
-		projects.value = []
-		showToast('Lixeira de projetos esvaziada')
+async function emptyTrash() {
+	try {
+		if (activeTab.value === 'tasks') {
+			await emptyTaskTrashMutation.mutateAsync({includeOthers: false})
+			showToast('Lixeira de tarefas esvaziada')
+		} else {
+			await emptyProjectTrashMutation.mutateAsync({includeOthers: false})
+			showToast('Lixeira de projetos esvaziada')
+		}
+	} catch (e) {
+		showToast('Erro ao esvaziar lixeira')
 	}
-}
-
-function toggleEmptyMode() {
-	isSimulatedEmpty.value = !isSimulatedEmpty.value
-	showToast(isSimulatedEmpty.value ? 'Visualizando Estado Vazio' : 'Visualizando Lista Preenchida')
-}
-
-function resetData() {
-	tasks.value = JSON.parse(JSON.stringify(initialTasks))
-	projects.value = JSON.parse(JSON.stringify(initialProjects))
-	isSimulatedEmpty.value = false
-	showToast('Dados restaurados')
 }
 </script>
 
@@ -533,13 +521,13 @@ function resetData() {
 .table-header-row,
 .grid-row {
 	display: grid;
-	grid-template-columns: 32px minmax(200px, 1fr) 150px 100px 140px;
+	grid-template-columns: minmax(200px, 1fr) 150px 120px 140px;
 	align-items: center;
 	padding: 8px 16px;
 	gap: 16px;
 
 	&.projects-mode {
-		grid-template-columns: 32px minmax(200px, 1fr) 120px 140px;
+		grid-template-columns: minmax(200px, 1fr) 120px 140px;
 	}
 }
 

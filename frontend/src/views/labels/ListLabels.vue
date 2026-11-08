@@ -1,6 +1,5 @@
 <template>
 	<div class="labels-page">
-
 		<!-- Content Area -->
 		<main class="content-area">
 			<div class="labels-wrapper">
@@ -22,18 +21,8 @@
 							stroke="currentColor"
 							stroke-width="2"
 						>
-							<line
-								x1="12"
-								y1="5"
-								x2="12"
-								y2="19"
-							/>
-							<line
-								x1="5"
-								y1="12"
-								x2="19"
-								y2="12"
-							/>
+							<line x1="12" y1="5" x2="12" y2="19" />
+							<line x1="5" y1="12" x2="19" y2="12" />
 						</svg>
 						New Label
 					</button>
@@ -41,26 +30,26 @@
 
 				<!-- Labels Table Container -->
 				<div
-					v-if="displayedLabels.length > 0"
+					v-if="labels.length > 0"
 					class="labels-table"
 				>
 					<div
-						v-for="label in displayedLabels"
+						v-for="label in labels"
 						:key="label.id"
 						class="label-row"
-						@click="openModal(label.id)"
+						@click="openModal(label)"
 					>
 						<!-- Dot -->
 						<div class="cell-dot">
 							<div
 								class="label-color-dot"
-								:style="{backgroundColor: label.color}"
+								:style="{backgroundColor: label.hex_color ? '#' + label.hex_color : '#9ca3af'}"
 							/>
 						</div>
 
 						<!-- Name -->
 						<div class="cell-name">
-							{{ label.name }}
+							{{ label.title }}
 						</div>
 
 						<!-- Description -->
@@ -68,19 +57,20 @@
 							{{ label.description || '-' }}
 						</div>
 
-						<!-- Count -->
-						<div class="cell-count">
-							{{ label.count }} tasks
-						</div>
+						<!-- Count (empty cell placeholder) -->
+						<div class="cell-count" />
 
 						<!-- Actions -->
-						<div class="cell-actions">
+						<div
+							class="cell-actions"
+							@click.stop
+						>
 							<button
 								type="button"
 								class="action-btn"
 								title="Editar"
-								:aria-label="'Editar etiqueta ' + label.name"
-								@click.stop="openModal(label.id)"
+								:aria-label="'Editar ' + label.title"
+								@click.stop="openModal(label)"
 							>
 								<svg
 									width="14"
@@ -90,16 +80,16 @@
 									stroke="currentColor"
 									stroke-width="2"
 								>
-									<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-									<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+									<path d="M12 20h9" />
+									<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
 								</svg>
 							</button>
 							<button
 								type="button"
 								class="action-btn danger"
 								title="Excluir"
-								:aria-label="'Excluir etiqueta ' + label.name"
-								@click.stop="deleteLabel(label.id)"
+								:aria-label="'Excluir ' + label.title"
+								@click.stop="confirmDelete(label)"
 							>
 								<svg
 									width="14"
@@ -119,7 +109,7 @@
 
 				<!-- Empty State -->
 				<div
-					v-else
+					v-else-if="!isPending"
 					class="empty-state-view"
 				>
 					<p class="empty-text">
@@ -146,7 +136,7 @@
 			>
 				<div class="modal-header">
 					<h3 class="modal-title">
-						{{ editingId ? 'Edit Label' : 'Create New Label' }}
+						{{ editingLabel ? 'Edit Label' : 'Create New Label' }}
 					</h3>
 					<button
 						type="button"
@@ -200,7 +190,7 @@
 									v-model="modalColor"
 									type="radio"
 									name="label-color"
-									:value="color.hex"
+									:value="color.hex.replace('#', '')"
 									class="color-radio"
 									:style="{backgroundColor: color.hex}"
 									:aria-label="color.name"
@@ -220,6 +210,7 @@
 					<button
 						type="button"
 						class="btn btn-primary"
+						:disabled="createMutation.isPending.value || updateMutation.isPending.value"
 						@click="saveLabel"
 					>
 						Save Label
@@ -245,46 +236,19 @@
 			</svg>
 			<span>{{ toastMessage }}</span>
 		</div>
-
-		<!-- Dev Controls -->
-		<div class="dev-controls">
-			<button
-				type="button"
-				class="dev-btn"
-				@click="toggleEmptyMode"
-			>
-				Alternar Vazio / Preenchido
-			</button>
-			<button
-				type="button"
-				class="dev-btn"
-				@click="resetData"
-			>
-				Restaurar Dados
-			</button>
-		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-import {computed, ref} from 'vue'
-import {useAuthStore} from '@/stores/auth'
-import Icon from '@/components/misc/Icon'
+import {ref} from 'vue'
+import {useLabels} from '@/composables/useLabels'
+import {useCreateLabelMutation, useUpdateLabelMutation, useDeleteLabelMutation} from '@/client/queries/labels'
+import type {Label} from '@/client/generated'
 
-export interface LabelItem {
-	id: number
-	name: string
-	description: string
-	color: string
-	count: number
-}
-
-const authStore = useAuthStore()
-
-const userInitials = computed(() => {
-	const name = authStore.userDisplayName || 'Matheus'
-	return name.substring(0, 2).toUpperCase()
-})
+const {labels, isPending} = useLabels()
+const createMutation = useCreateLabelMutation()
+const updateMutation = useUpdateLabelMutation()
+const deleteMutation = useDeleteLabelMutation()
 
 const colorPalette = [
 	{name: 'Vermelho', hex: '#e5484d'},
@@ -295,21 +259,11 @@ const colorPalette = [
 	{name: 'Cinza', hex: '#9ca3af'},
 ]
 
-const initialData: LabelItem[] = [
-	{id: 1, name: 'Bug', description: 'Something is broken', color: '#e5484d', count: 12},
-	{id: 2, name: 'Feature', description: 'New functionality', color: '#10b981', count: 5},
-	{id: 3, name: 'Design', description: 'UI/UX improvements', color: '#8b5cf6', count: 8},
-	{id: 4, name: 'Documentation', description: 'Needs documentation', color: '#5e6ad2', count: 3},
-]
-
-const labels = ref<LabelItem[]>(JSON.parse(JSON.stringify(initialData)))
-const isSimulatedEmpty = ref(false)
-
 const isModalOpen = ref(false)
-const editingId = ref<number | null>(null)
+const editingLabel = ref<Label | null>(null)
 const modalName = ref('')
 const modalDescription = ref('')
-const modalColor = ref('#e5484d')
+const modalColor = ref('e5484d')
 
 const toastMessage = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -322,219 +276,72 @@ function showToast(msg: string) {
 	}, 3000)
 }
 
-const displayedLabels = computed(() => {
-	if (isSimulatedEmpty.value) return []
-	return labels.value
-})
-
-function openModal(id: number | null = null) {
-	editingId.value = id
-	if (id) {
-		const label = labels.value.find(l => l.id === id)
-		if (label) {
-			modalName.value = label.name
-			modalDescription.value = label.description
-			modalColor.value = label.color
-		}
+function openModal(label: Label | null = null) {
+	editingLabel.value = label
+	if (label) {
+		modalName.value = label.title ?? ''
+		modalDescription.value = label.description ?? ''
+		modalColor.value = label.hex_color || 'e5484d'
 	} else {
 		modalName.value = ''
 		modalDescription.value = ''
-		modalColor.value = '#e5484d'
+		modalColor.value = 'e5484d'
 	}
 	isModalOpen.value = true
 }
 
 function closeModal() {
 	isModalOpen.value = false
-	editingId.value = null
+	editingLabel.value = null
 }
 
-function saveLabel() {
-	const name = modalName.value.trim()
-	if (!name) {
+async function saveLabel() {
+	const title = modalName.value.trim()
+	if (!title) {
 		showToast('O nome da etiqueta é obrigatório')
 		return
 	}
 
-	if (editingId.value) {
-		const label = labels.value.find(l => l.id === editingId.value)
-		if (label) {
-			label.name = name
-			label.description = modalDescription.value.trim()
-			label.color = modalColor.value
+	try {
+		if (editingLabel.value && editingLabel.value.id) {
+			await updateMutation.mutateAsync({
+				id: editingLabel.value.id,
+				title,
+				description: modalDescription.value.trim(),
+				hex_color: modalColor.value.replace('#', ''),
+			})
 			showToast('Etiqueta atualizada com sucesso')
+		} else {
+			await createMutation.mutateAsync({
+				title,
+				description: modalDescription.value.trim(),
+				hex_color: modalColor.value.replace('#', ''),
+			})
+			showToast('Etiqueta criada com sucesso')
 		}
-	} else {
-		labels.value.unshift({
-			id: Date.now(),
-			name,
-			description: modalDescription.value.trim(),
-			color: modalColor.value,
-			count: 0,
-		})
-		showToast('Etiqueta criada com sucesso')
+		closeModal()
+	} catch (e) {
+		showToast('Erro ao salvar etiqueta')
 	}
-
-	closeModal()
 }
 
-function deleteLabel(id: number) {
-	labels.value = labels.value.filter(l => l.id !== id)
-	showToast('Etiqueta excluída')
-}
-
-function toggleEmptyMode() {
-	isSimulatedEmpty.value = !isSimulatedEmpty.value
-	showToast(isSimulatedEmpty.value ? 'Visualizando Estado Vazio' : 'Visualizando Lista Preenchida')
-}
-
-function resetData() {
-	labels.value = JSON.parse(JSON.stringify(initialData))
-	isSimulatedEmpty.value = false
-	showToast('Dados restaurados')
+async function confirmDelete(label: Label) {
+	if (window.confirm(`Deseja realmente excluir a etiqueta "${label.title}"?`)) {
+		try {
+			await deleteMutation.mutateAsync(label)
+			showToast('Etiqueta excluída com sucesso')
+		} catch (e) {
+			showToast('Erro ao excluir etiqueta')
+		}
+	}
 }
 </script>
 
 <style scoped lang="scss">
 .labels-page {
-	/* Design Tokens - Light Theme */
-	--font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-	--bg-app: #f9f9f9;
-	--bg-sidebar: #fcfcfc;
-	--bg-card: #ffffff;
-	--bg-hover: #f4f4f5;
-
-	--text-primary: #111111;
-	--text-secondary: #6b6b6b;
-	--text-tertiary: #9ca3af;
-
-	--border-color: #e5e5e5;
-	--border-subtle: #f0f0f0;
-	--border-focus: #5e6ad2;
-
-	--accent-base: #5e6ad2;
-	--accent-hover: #4a55b5;
-
-	--shadow-card: 0 1px 3px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.04);
-	--shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.15);
-
-	font-family: var(--font-family);
-	background-color: var(--bg-app);
-	color: var(--text-primary);
-	min-height: 100vh;
-	display: flex;
-	flex-direction: column;
 	width: 100%;
 }
 
-:global(html.dark) .labels-page {
-	/* Design Tokens - Dark Theme */
-	--bg-app: #0f0f0f;
-	--bg-sidebar: #0f0f0f;
-	--bg-card: #1c1c1c;
-	--bg-hover: #2a2a2a;
-
-	--text-primary: #e5e5e5;
-	--text-secondary: #8a8a8a;
-	--text-tertiary: #555555;
-
-	--border-color: #333333;
-	--border-subtle: #222222;
-
-	--shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.5);
-}
-
-/* Header */
-.top-header {
-	height: 48px;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 0 24px;
-	border-bottom: 1px solid var(--border-color);
-	background: var(--bg-app);
-}
-
-.breadcrumb {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	font-size: 14px;
-	font-weight: 600;
-	color: var(--text-primary);
-
-	.breadcrumb-item {
-		color: var(--text-secondary);
-	}
-
-	.breadcrumb-separator {
-		color: var(--text-tertiary);
-		font-weight: 400;
-	}
-
-	.breadcrumb-current {
-		color: var(--text-primary);
-	}
-}
-
-.header-actions {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-}
-
-.icon-btn {
-	background: transparent;
-	border: none;
-	cursor: pointer;
-	color: var(--text-secondary);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 6px;
-	border-radius: 6px;
-	transition: background 0.15s, color 0.15s;
-
-	&:hover {
-		background: var(--bg-hover);
-		color: var(--text-primary);
-	}
-}
-
-.user-profile {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	font-size: 13px;
-	font-weight: 500;
-	cursor: pointer;
-	padding: 2px 6px;
-	border-radius: 6px;
-	transition: background 0.15s;
-
-	&:hover {
-		background: var(--bg-hover);
-	}
-
-	.avatar {
-		width: 24px;
-		height: 24px;
-		border-radius: 50%;
-		background: #e0e7ff;
-		color: var(--accent-base);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 11px;
-		font-weight: 600;
-	}
-
-	.username {
-		color: var(--text-primary);
-	}
-}
-
-/* Content Area */
 .content-area {
 	flex: 1;
 	padding: 32px 24px;
@@ -576,7 +383,7 @@ function resetData() {
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	transition: all 0.15s ease;
+	transition: all 0.15s;
 
 	&:hover {
 		background: var(--accent-hover);
@@ -584,7 +391,6 @@ function resetData() {
 	}
 }
 
-/* Table */
 .labels-table {
 	background: var(--bg-card);
 	border: 1px solid var(--border-color);
@@ -598,9 +404,9 @@ function resetData() {
 .label-row {
 	display: grid;
 	grid-template-columns: 24px minmax(200px, 1fr) 200px 100px 60px;
+	gap: 16px;
 	align-items: center;
 	padding: 12px 16px;
-	gap: 16px;
 	border-bottom: 1px solid var(--border-subtle);
 	cursor: pointer;
 	transition: background 0.1s;
@@ -664,13 +470,13 @@ function resetData() {
 	border: none;
 	cursor: pointer;
 	color: var(--text-secondary);
-	padding: 4px;
-	border-radius: 4px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	padding: 4px;
+	border-radius: 4px;
 	opacity: 0;
-	transition: all 0.15s ease;
+	transition: all 0.15s;
 
 	&:hover {
 		background: var(--bg-card);
@@ -678,11 +484,10 @@ function resetData() {
 	}
 
 	&.danger:hover {
-		color: #e5484d;
+		color: var(--priority-urgent);
 	}
 }
 
-/* Empty State */
 .empty-state-view {
 	display: flex;
 	justify-content: center;
@@ -692,16 +497,16 @@ function resetData() {
 
 .empty-text {
 	font-size: 14px;
-	font-style: italic;
 	color: var(--text-secondary);
+	font-style: italic;
 }
 
 .empty-link {
 	color: var(--accent-base);
+	cursor: pointer;
 	font-style: normal;
 	font-weight: 500;
 	margin-left: 4px;
-	cursor: pointer;
 
 	&:hover {
 		text-decoration: underline;
@@ -724,11 +529,11 @@ function resetData() {
 }
 
 .modal-card {
-	width: 100%;
-	max-width: 480px;
 	background: var(--bg-card);
 	border: 1px solid var(--border-color);
 	border-radius: 12px;
+	width: 100%;
+	max-width: 480px;
 	box-shadow: var(--shadow-modal);
 	display: flex;
 	flex-direction: column;
@@ -736,11 +541,11 @@ function resetData() {
 }
 
 .modal-header {
-	padding: 16px 20px;
-	border-bottom: 1px solid var(--border-subtle);
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	padding: 16px 20px;
+	border-bottom: 1px solid var(--border-subtle);
 }
 
 .modal-title {
@@ -753,8 +558,8 @@ function resetData() {
 	background: transparent;
 	border: none;
 	font-size: 20px;
-	cursor: pointer;
 	color: var(--text-secondary);
+	cursor: pointer;
 	padding: 0 4px;
 
 	&:hover {
@@ -788,11 +593,11 @@ function resetData() {
 	border: 1px solid var(--border-color);
 	border-radius: 6px;
 	padding: 8px 12px;
-	color: var(--text-primary);
-	font-family: inherit;
 	font-size: 14px;
+	color: var(--text-primary);
 	outline: none;
-	transition: all 0.15s ease;
+	font-family: inherit;
+	transition: all 0.15s;
 
 	&:focus {
 		border-color: var(--border-focus);
@@ -807,9 +612,9 @@ function resetData() {
 }
 
 .color-radio-label {
-	cursor: pointer;
 	display: flex;
 	align-items: center;
+	cursor: pointer;
 }
 
 .color-radio {
@@ -817,10 +622,10 @@ function resetData() {
 	width: 24px;
 	height: 24px;
 	border-radius: 50%;
-	cursor: pointer;
-	outline: none;
-	transition: all 0.15s ease;
 	border: 2px solid transparent;
+	outline: none;
+	cursor: pointer;
+	transition: all 0.15s;
 
 	&:checked {
 		border-color: var(--text-primary);
@@ -829,11 +634,11 @@ function resetData() {
 }
 
 .modal-footer {
-	padding: 14px 20px;
-	border-top: 1px solid var(--border-subtle);
 	display: flex;
 	justify-content: flex-end;
 	gap: 10px;
+	padding: 14px 20px;
+	border-top: 1px solid var(--border-subtle);
 	background: var(--bg-card);
 }
 
@@ -844,7 +649,7 @@ function resetData() {
 	font-weight: 600;
 	cursor: pointer;
 	border: none;
-	transition: all 0.15s ease;
+	transition: all 0.15s;
 }
 
 .btn-secondary {
@@ -858,7 +663,6 @@ function resetData() {
 	}
 }
 
-/* Toast */
 .toast-notification {
 	position: fixed;
 	bottom: 24px;
@@ -887,38 +691,6 @@ function resetData() {
 	to {
 		opacity: 1;
 		transform: translate(-50%, 0);
-	}
-}
-
-/* Dev Controls */
-.dev-controls {
-	position: fixed;
-	bottom: 16px;
-	right: 16px;
-	background: var(--bg-card);
-	padding: 10px 12px;
-	border-radius: 8px;
-	border: 1px solid var(--border-color);
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-	display: flex;
-	gap: 8px;
-	z-index: 100;
-}
-
-.dev-btn {
-	font-size: 12px;
-	padding: 4px 8px;
-	cursor: pointer;
-	background: var(--bg-hover);
-	color: var(--text-secondary);
-	border: 1px solid var(--border-color);
-	border-radius: 4px;
-	transition: all 0.15s;
-
-	&:hover {
-		background: var(--accent-base);
-		color: #ffffff;
-		border-color: var(--accent-base);
 	}
 }
 </style>
